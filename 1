@@ -1,0 +1,42 @@
+import pandas as pd
+import random
+import string
+
+# Функция для генерации пароля
+def generate_password(length=10):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(characters) for _ in range(length))
+
+# Чтение Excel-файла
+file_path = 'ваш_файл.xlsx'  # Укажите путь к вашему файлу
+df = pd.read_excel(file_path, sheet_name=0)  # Чтение листа 1
+
+# Фирмы, с которыми мы работаем
+firms = ["Софт Серотонин", "Феникс Контакт Фаундейшн", "Вектор Менеджмент Технолоджис"]
+
+# Словарь для хранения данных сотрудников по фирмам
+employees_dict = {firm: [] for firm in firms}
+
+# Проход по строкам и столбцам DataFrame
+for index, row in df.iterrows():
+    # Предполагаем, что в столбце 'Фирма' указано название фирмы, а в 'ФИО' - фамилия, имя, отчество сотрудника
+    firm_name = row['Фирма']
+    full_name = row['ФИО']  # Предполагаем, что фамилия, имя, отчество в одной колонке
+
+    # Проверяем принадлежность к одной из фирм
+    if firm_name in firms:
+        # Генерация логина
+        last_name, first_name, middle_name = full_name.split()
+        login = f"{last_name.lower()}.{first_name[0].lower()}.{middle_name[0].lower()}"
+        password = generate_password()  # Генерация случайного пароля
+
+        # Сохраняем информацию об employee
+        employees_dict[firm_name].append({"login": login, "password": password})
+
+# Запись результатов в отдельные файлы
+for firm, employees in employees_dict.items():
+    output_file = f"{firm.replace(' ', '_')}.xlsx"  # Имя файла заменяем пробелы на подчеркивания
+    output_df = pd.DataFrame(employees)
+    output_df.to_excel(output_file, index=False)
+
+print("Файлы успешно созданы.")
