@@ -1,0 +1,27 @@
+from ofrestapi import Users, Groups
+import pandas as pd
+
+key = 'ntBxjzpL05WKdcfø'  # Ключ API Openfire
+url = 'http://127.0.0.1:9090'  # Адрес сервера Openfire
+
+users_object = Users(url, key)  # Объект для управления пользователями
+groups_object = Groups(url, key)  # Объект для управления группами
+
+excel_file = 'result.xlsx'  # Имя Excel-файла
+
+df = pd.read_excel(excel_file)  # Чтение данных из Excel
+
+for index, row in df.iterrows():
+    name = row[0]
+    firm = row[1]
+    login = row[2].replace(" ", ".")  # Замена пробелов точками в логине
+    password = row[3]
+
+    # Создание пользователя
+    users_object.add_user(login, password, name)
+
+    # Добавление пользователя в группу
+    groups_object.add_user_groups(login, [firm], firm) 
+
+print("Пользователи успешно добавлены в Openfire.")
+
