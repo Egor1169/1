@@ -1,0 +1,77 @@
+<?php
+// Конфигурация базы данных
+$host = 'localhost'; // Обычно localhost
+$user = 'your_username'; // Имя пользователя базы данных
+$password = 'your_password'; // Пароль пользователя базы данных
+
+// Соединение с сервером MySQL
+$conn = new mysqli($host, $user, $password);
+
+// Проверка соединения
+if ($conn->connect_error) {
+die("Ошибка подключения: " . $conn->connect_error);
+}
+
+// Функция для вывода баз данных
+function getDatabases($conn) {
+$result = $conn->query("SHOW DATABASES");
+while ($row = $result->fetch_assoc()) {
+echo '<a href="?db=' . urlencode($row['Database']) . '">' . htmlspecialchars($row['Database']) . '</a>
+';
+}
+}
+
+// Функция для вывода таблиц
+function getTables($conn, $db) {
+$conn->select_db($db);
+$result = $conn->query("SHOW TABLES");
+echo "Таблицы в базе данных '" . htmlspecialchars($db) . "':
+";
+while ($row = $result->fetch_row()) {
+echo '<a href="?db=' . urlencode($db) . '&table=' . urlencode($row[0]) . '">' . htmlspecialchars($row[0]) . '</a>
+';
+}
+}
+
+// Функция для вывода данных таблицы
+function getTableData($conn, $db, $table) {
+$conn->select_db($db);
+$result = $conn->query("SHOW COLUMNS FROM " . $conn->real_escape_string($table));
+echo "Структура таблицы '" . htmlspecialchars($table) . "':
+";
+while ($row = $result->fetch_assoc()) {
+echo "Поле: " . htmlspecialchars($row['Field']) . " | Тип: " . htmlspecialchars($row['Type']) . "
+";
+}
+
+// Пагинация
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$limit = 50;
+$offset = ($page - 1) * $limit;
+
+// Вывод данных таблицы
+$result = $conn->query("SELECT * FROM " . $conn->real_escape_string($table) . " LIMIT $limit OFFSET $offset");
+echo "
+Данные таблицы '" . htmlspecialchars($table) . "':
+";
+while ($row = $result->fetch_assoc()) {
+foreach ($row as $field => $value) {
+echo "$field: " . htmlspecialchars($value) . "
+";
+}
+echo "<hr>";
+}
+}
+
+// Основная логика
+if (isset($_GET['db']) && isset($_GET['table'])) {
+getTableData($conn, $_GET['db'], $_GET['table']);
+} elseif (isset($_GET['db'])) {
+getTables($conn, $_GET['db']);
+} else {
+getDatabases($conn);
+}
+
+// Закрытие соединения
+$conn->close();
+?>
