@@ -1,0 +1,125 @@
+<?php
+// Проверка, был ли загружен файл
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$target_dir = __DIR__ . "/uploads/";
+$preview_dir = __DIR__ . "/previewImages/";
+
+// Создаем директории, если они не существуют
+if (!file_exists($target_dir)) {
+mkdir($target_dir, 0755, true);
+}
+if (!file_exists($preview_dir)) {
+mkdir($preview_dir, 0755, true);
+}
+
+$target_file = $target_dir . basename($_FILES["image"]["name"]);
+
+// Проверка на существование изображения с этим именем
+if (file_exists($target_file)) {
+echo "Изображение с таким именем уже существует.";
+} else {
+// Проверяем, действительно ли это изображение
+$check = getimagesize($_FILES["image"]["tmp_name"]);
+if ($check !== false) {
+// Перемещаем загруженный файл в целевую директорию
+if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
+echo "Файл " . htmlspecialchars(basename($_FILES["image"]["name"])) . " был загружен.
+";
+
+// Создание превью с текущей датой и временем
+createThumbnail($target_file, $preview_dir);
+// Нанесение водяного знака
+addWatermark($target_file);
+} else {
+echo "Извините, возникла ошибка при загрузке вашего файла.";
+}
+} else {
+echo "Файл не является изображением.";
+}
+}
+}
+
+// Функция создания превью
+function createThumbnail($file, $preview_dir) {
+$thumbnail_name = $preview_dir . basename($file);
+$image = imagecreatefromjpeg($file);
+$width = imagesx($image);
+$height = imagesy($image);
+
+$new_width = 150; // Ширина превью
+$new_height = ($height / $width) * $new_width;
+
+$thumbnail = imagecreatetruecolor($new_width, $new_height);
+imagecopyresampled($thumbnail, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+
+// Наносим дату и время на превью
+$text_color = imagecolorallocate($thumbnail, 255, 255, 255);
+$font_path = __DIR__ . '/fonts/arial.ttf'; // Путь к вашему шрифту
+$date_time = date('Y-m-d H:i:s');
+imagettftext($thumbnail, 12, 0, 10, 20, $text_color, $font_path, $date_time);
+
+imagejpeg($thumbnail, $thumbnail_name);
+imagedestroy($image);
+imagedestroy($thumbnail);
+}
+
+// Функция добавления водяного знака
+function addWatermark($file) {
+$watermark_image = __DIR__ . '/watermark.png'; // Путь к вашему изображению водяного знака
+$image = imagecreatefromjpeg($file);
+$watermark = imagecreatefrompng($watermark_image);
+
+// Размер водяного знака
+$wm_width = imagesx($watermark);
+$wm_height = imagesy($watermark);
+
+// Позиция водяного знака (правый нижний угол)
+$dest_x = imagesx($image) - $wm_width - 10;
+$dest_y = imagesy($image) - $wm_height - 10;
+
+// Наносим водяной знак
+imagecopyopacity($image, $watermark, $dest_x, $dest_y, 0, 0, $wm_width, $wm_height, 80);
+imagejpeg($image, $file); // Сохраняем изображение с водяным знаком
+imagedestroy($image);
+imagedestroy($watermark);
+}
+?>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Загрузка изображений</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+img {
+margin: 10px;
+width: 150px;
+}
+</style>
+</head>
+<body>
+<h1>Загрузка изображения</h1>
+<form action="" method="post" enctype="multipart/form-data">
+<label for="fileToUpload">Выберите изображение для загрузки:</label>
+<input type="file" name="image" id="fileToUpload" required>
+<button type="submit">
+<i class="material-icons">cloud_upload</i> Загрузить
+</button>
+</form>
+
+<h2>Превью изображений</h2>
+<?php
+$preview_dir = __DIR__ . "/previewImages/";
+$images = array_diff(scandir($preview_dir), ['.', '..']);
+
+foreach ($images as $image) {
+echo '<a href="uploads/' .
+htmlspecialchars($image) . '" target="_blank">';
+echo '<img src="' . htmlspecialchars($preview_dir . $image) . '" alt="' . htmlspecialchars($image) . '" />';
+echo '</a>';
+}
+?>
+</body>
+</html>
