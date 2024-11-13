@@ -1,0 +1,92 @@
+CREATE TABLE Categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    url VARCHAR(255) UNIQUE NOT NULL,
+    parent_id INT,
+    FOREIGN KEY (parent_id) REFERENCES Categories(id)
+);
+
+-- Add index for the name column
+CREATE INDEX idx_categories_name ON Categories (name);
+
+
+-- Products table
+CREATE TABLE Products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    url VARCHAR(255) UNIQUE NOT NULL,
+    image_url VARCHAR(255),
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES Categories(id)
+);
+
+-- Add indexes for the category_id and name columns
+CREATE INDEX idx_products_category_id ON Products (category_id);
+CREATE INDEX idx_products_name ON Products (name);
+
+
+-- Attributes table
+CREATE TABLE Attributes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type ENUM('string', 'numeric', 'boolean') NOT NULL
+);
+
+-- Add index for the name column
+CREATE INDEX idx_attributes_name ON Attributes (name);
+
+
+-- ProductAttributes table
+CREATE TABLE ProductAttributes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    attribute_id INT,
+    value TEXT,
+    FOREIGN KEY (product_id) REFERENCES Products(id),
+    FOREIGN KEY (attribute_id) REFERENCES Attributes(id)
+);
+
+-- Add indexes for the product_id and attribute_id columns
+CREATE INDEX idx_productattributes_product_id ON ProductAttributes (product_id);
+CREATE INDEX idx_productattributes_attribute_id ON ProductAttributes (attribute_id);
+
+
+-- ProductPrices table
+CREATE TABLE ProductPrices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    price DECIMAL(10, 2),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES Products(id)
+);
+
+-- Add index for the product_id column
+CREATE INDEX idx_productprices_product_id ON ProductPrices (product_id);
+
+
+-- ProductRatings table
+CREATE TABLE ProductRatings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    rating DECIMAL(2, 1),
+    reviews_count INT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES Products(id)
+);
+
+-- Add index for the product_id column
+CREATE INDEX idx_productratings_product_id ON ProductRatings (product_id);
+
+
+-- ProductSpecifications table
+CREATE TABLE ProductSpecifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    name VARCHAR(255),
+    value TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES Products(id)
+);
+
+-- Add index for the product_id column
+CREATE INDEX idx_productspecifications_product_id ON ProductSpecifications (product_id);
