@@ -1,0 +1,53 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+?>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Фото Галерея</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">;
+</head>
+<body>
+<h1>Добро пожаловать в вашу фотогалерею!</h1>
+<p>Пожалуйста, загрузите изображения.</p>
+
+<!— Выбор иконок —>
+<h2>Выберите иконку</h2>
+<div class="icon-grid">
+<?php
+$icons = ["home", "favorite", "person", "search", "settings", "upload",
+"delete", "info", "shopping_cart", "shop", "star", "lock"];
+
+foreach ($icons as $icon) {
+echo '<div class="icon-item" onclick="selectIcon(\'' . $icon . '\')">';
+echo '<span class="material-icons">' . $icon . '</span>';
+echo '
+' . ucfirst($icon);
+echo '</div>';
+}
+?>
+</div>
+
+<div class="selected-icon" id="selectedIcon"></div>
+
+<form action="upload.php" method="POST" enctype="multipart/form-data">
+<input type="file" name="image" accept="image/jpeg" required>
+<input type="hidden" name="selected_icon" id="hiddenIcon">
+<input type="submit" value="Загрузить изображение">
+</form>
+
+<script>
+function selectIcon(iconName) {
+// Отображение выбранной иконки
+document.getElementById('selectedIcon').innerHTML = '<span class="material-icons">' + iconName + '</span>';
+// Сохранение выбора в скрытом поле
+document.getElementById('hiddenIcon').value = iconName;
+}
+</script>
+</body>
+</html>
