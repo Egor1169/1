@@ -1,0 +1,156 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Указываем директорию для загрузки
+$target_dir = "uploads/";
+$target_file = $target_dir . basename($_FILES["image"]["name"]);
+$uploadOk = 1;
+$imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+// Проверка наличия файла
+if (isset($_POST["submit"])) {
+$check = getimagesize($_FILES["image"]["tmp_name"]);
+if ($check !== false) {
+echo "Файл является изображением - " . $check["mime"] . ".";
+$uploadOk = 1;
+} else {
+echo "Файл не является изображением.";
+$uploadOk = 0;
+}
+}
+
+// Проверка на существование файла
+if (file_exists($target_file)) {
+echo "Извините, файл уже существует.";
+$uploadOk = 0;
+}
+
+// Проверка размера файла
+if ($_FILES["image"]["size"] > 500000) {
+echo "Извините, файл слишком большой.";
+$uploadOk = 0;
+}
+
+// Разрешить определенные форматы файлов
+if (!in_array($imageFileType, ['jpg', 'png', 'jpeg', 'gif'])) {
+echo "Извините, можно загружать только файлы формата JPG, PNG, JPEG и GIF.";
+$uploadOk = 0;
+}
+
+// Проверка $uploadOk перед загрузкой
+if ($uploadOk == 0) {
+echo "Извините, файл не был загружен.";
+// Если все в порядке, то пытаемся загрузить файл
+} else {
+if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
+echo "Файл " . htmlspecialchars(basename($_FILES["image"]["name"])) . " был загружен.";
+
+// Отображение изображений
+echo "<h2>Загруженные изображения:</h2>";
+$images = glob($target_dir . "*.{jpg,jpeg,png,gif}", GLOB_BRACE);
+foreach ($images as $image) {
+echo '<img src="' . $image . '" alt="Uploaded Image" style="width:100px; margin:10px;">';
+}
+
+// Отображение выбранной иконки, если она была передана
+if (!empty($_POST["selected_icon"])) {
+echo "<h2>Выбранная иконка:</h2>";
+echo '<span class="material-icons">' . htmlspecialchars($_POST["selected_icon"]) . '</span>';
+}
+} else {
+echo "Извините, возникла ошибка при загрузке вашего файла.";
+}
+}
+?>
+Katerina
+Katerina 1:01
+Необ
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Папка для загрузки
+$target_dir = "uploads/";
+if (!file_exists($target_dir)) {
+mkdir($target_dir, 0755, true);
+}
+
+// Папка для превью
+$preview_dir = "previews/";
+if (!file_exists($preview_dir)) {
+mkdir($preview_dir, 0755, true);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$target_file = $target_dir . basename($_FILES["image"]["name"]);
+$imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+$uploadOk = 1;
+
+// Проверка на существование файла
+if (file_exists($target_file)) {
+echo "Извините, файл уже существует.";
+$uploadOk = 0;
+}
+
+// Проверка на размер
+if ($_FILES["image"]["size"] > 5000000) { // 5 МБ
+echo "Извините, файл слишком большой.";
+$uploadOk = 0;
+}
+
+// Разрешенные форматы изображений
+if (!in_array($imageFileType, ['jpg', 'jpeg', 'png', 'gif'])) {
+echo "Извините, доступны только JPG, JPEG, PNG и GIF.";
+$uploadOk = 0;
+}
+
+// Если все проверки пройдены, загружаем файл
+if ($uploadOk == 1) {
+if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
+echo "Файл " . htmlspecialchars(basename($_FILES["image"]["name"])) . " был загружен.";
+
+// Добавляем водяной знак с текущей датой и временем
+$watermark_text = date("Y-m-d H:i:s");
+addWatermark($target_file, $watermark_text);
+
+// Создаем превью
+createThumbnail($target_file, $preview_dir . basename($_FILES["image"]["name"]));
+} else {
+echo "Извините, произошла ошибка при загрузке вашего файла.";
+}
+}
+}
+
+// Функция добавления водяного знака
+function addWatermark($source, $text) {
+$image = imagecreatefromstring(file_get_contents($source));
+$white = imagecolorallocate($image, 255, 255, 255); // Белый
+$font_path = __DIR__ . '/path/to/font.ttf'; // Укажите правильный путь к шрифту
+
+// Наносим водяной знак
+imagettftext($image, 20, 0, 10, 30, $white, $font_path, $text); // Наносим на изображение
+imagejpeg($image, $source); // Сохраняем с водяным знаком
+imagedestroy($image);
+}
+
+// Функция создания превью с добавлением текущей даты и времени
+function createThumbnail($source, $target) {
+list($width, $height) = getimagesize($source);
+$thumbnail_width = 150;
+$thumbnail_height = ($height / $width) * $thumbnail_width;
+
+$thumbnail = imagecreatetruecolor($thumbnail_width, $thumbnail_height);
+$image = imagecreatefromstring(file_get_contents($source));
+imagecopyresampled($thumbnail, $image, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $width, $height);
+
+$black = imagecolorallocate($thumbnail, 0, 0, 0); // Черный
+$font_path = __DIR__ . '/path/to/font.ttf'; // Укажите правильный путь к шрифту
+$current_time = date("Y-m-d H:i:s");
+imagettftext($thumbnail, 12, 0, 5, 15, $black, $font_path, $current_time); // Добавляем дату и время
+
+imagejpeg($thumbnail, $target); // Сохраняем превью
+imagedestroy($image);
+imagedestroy($thumbnail);
+}
+?>
