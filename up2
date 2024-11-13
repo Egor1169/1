@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Загрузка изображения с иконками</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+
+<h1>Загрузка изображения</h1>
+
+<form action="" method="post" enctype="multipart/form-data">
+<label for="fileToUpload">Выберите изображение для загрузки:</label>
+<input type="file" name="image" id="fileToUpload" required>
+<button type="submit">
+<i class="material-icons">upload</i> Загрузить
+</button>
+</form>
+
+<?php
+// Проверка, был ли загружен файл
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Указываем директорию для загрузки
+$target_dir = __DIR__ . "/uploads/";
+
+// Создаем директорию, если она не существует
+if (!file_exists($target_dir)) {
+mkdir($target_dir, 0755, true);
+}
+
+// Указываем путь к файлу
+$target_file = $target_dir . basename($_FILES["image"]["name"]);
+
+// Проверяем, действительно ли это изображение
+$check = getimagesize($_FILES["image"]["tmp_name"]);
+if($check !== false) {
+// Перемещаем загруженный файл в целевую директорию
+if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
+echo "Файл " . htmlspecialchars(basename($_FILES["image"]["name"])) . " был загружен.
+";
+
+// Если требуется добавление водяного знака, можно добавить свой код здесь
+} else {
+echo "Извините, возникла ошибка при загрузке вашего файла.";
+}
+} else {
+echo "Файл не является изображением.";
+}
+}
+?>
+
+</body>
+</html>
