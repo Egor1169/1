@@ -1,0 +1,40 @@
+body {
+font-family: Arial, sans-serif;
+background-color: #f4f4f4;
+margin: 0;
+padding: 20px;
+}
+
+.container {
+width: 80%;
+margin: auto;
+}
+
+h1 {
+text-align: center;
+color: #333;
+}
+
+.thumbnail {
+width: 150px;
+height: 100px;
+margin: 10px;
+display: inline-block;
+position: relative;
+}
+
+.thumbnail img {
+width: 100%;
+height: auto;
+}
+
+.description {
+position: absolute;
+bottom: 0;
+left: 0;
+background: rgba(0, 0, 0, 0.5);
+color: white;
+padding: 5px;
+width: 100%;
+box-sizing: border-box;
+}
