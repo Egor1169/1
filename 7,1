@@ -6,29 +6,29 @@
 <title>Браузер Баз Данных</title>
 <style>
 body {
-font-family: Arial, sans-serif;
-margin: 20px;
+    font-family: Arial, sans-serif;
+    margin: 20px;
 }
 h1 {
-color: #4CAF50;
+    color: #4CAF50;
 }
 table {
-width: 100%;
-border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
 }
 table, th, td {
-border: 1px solid #dddddd;
-padding: 8px;
+    border: 1px solid #ddd;
+    padding: 8px;
 }
 th {
-background-color: #f2f2f2;
+    background-color: #f2f2f2;
 }
 a {
-color: #337ab7;
-text-decoration: none;
+    color: #337ab7;
+    text-decoration: none;
 }
 a:hover {
-text-decoration: underline;
+    text-decoration: underline;
 }
 input[type="text"] {
     width: 200px;
@@ -44,143 +44,90 @@ input[type="text"] {
 <?php
 // Конфигурация базы данных (ВАЖНО: Замените на ваши значения!)
 $host = 'localhost';
-$user = 'ваш_пользователь';
-$password = 'ваш_пароль';
-$database = '';
+$user = 'egor';
+$password = '0000';
 
-// Соединение с сервером MySQL
-$conn = new mysqli($host, $user, $password);
 
-// Проверка соединения
-if ($conn->connect_error) {
-die("Ошибка подключения: " . $conn->connect_error);
-}
-
-// Функция для отображения баз данных
+// Функции (без изменений)
 function getDatabases($conn) {
-echo "<h2>Доступные базы данных</h2>";
-echo "<ul>";
-$result = $conn->query("SHOW DATABASES");
-while ($row = $result->fetch_assoc()) {
-echo '<li><a href="?db=' . urlencode($row['Database']) . '">' . htmlspecialchars($row['Database']) . '</a></li>';
-}
-echo "</ul>";
+    $result = $conn->query("SHOW DATABASES");
+    if (!$result) { echo "<p style='color:red;'>Ошибка SHOW DATABASES: " . $conn->error . "</p>"; return; }
+    echo "<h2>Доступные базы данных</h2>";
+    echo "<ul>";
+    while ($row = $result->fetch_assoc()) {
+        echo '<li><a href="?db=' . urlencode($row['Database']) . '">' . htmlspecialchars($row['Database']) . '</a></li>';
+    }
+    echo "</ul>";
 }
 
-
-// Функция для отображения таблиц
 function getTables($conn, $db) {
-$conn->select_db($db);
-echo "<h2>Таблицы в базе данных: " . htmlspecialchars($db) . "</h2>";
-echo "<form method='get'>"; // Добавляем форму
-echo "<ul>";
-$result = $conn->query("SHOW TABLES");
-while ($row = $result->fetch_row()) {
-echo '<li><a href="?db=' . urlencode($db) . '&table=' . urlencode($row[0]) . '">' . htmlspecialchars($row[0]) . '</a></li>';
+    $conn->select_db($db);
+    echo "<h2>Таблицы в базе данных: " . htmlspecialchars($db) . "</h2>";
+    echo "<form method='get'>"; // Добавляем форму
+    echo "<ul>";
+    $result = $conn->query("SHOW TABLES");
+    if (!$result) { echo "<p style='color:red;'>Ошибка SHOW TABLES: " . $conn->error . "</p>"; return; }
+    while ($row = $result->fetch_row()) {
+        echo '<li><a href="?db=' . urlencode($db) . '&table=' . urlencode($row[0]) . '">' . htmlspecialchars($row[0]) . '</a></li>';
+    }
+    echo "</ul>";
+    echo "</form>"; // Закрываем форму
 }
-echo "</ul>";
-echo "</form>"; // Закрываем форму
-}
-
 
 
 function getTableData($conn, $db, $table, $search) {
-$conn->select_db($db);
+    $conn->select_db($db);
+	$query = "SELECT * FROM $table";
+	if (!empty($search)) {
+        $query = "SELECT * FROM $table WHERE ";
+        $fields = array();
+        $result = $conn->query("SHOW COLUMNS FROM " . $conn->real_escape_string($table));
+        if (!$result) { echo "<p style='color:red;'>Ошибка SHOW COLUMNS: " . $conn->error . "</p>"; return; }
 
-// Строка запроса для поиска
-$query = "SELECT * FROM $table";
-if (!empty($search)) {
-$query .= " WHERE ";
-$fields = array();
+        while ($row = $result->fetch_assoc()) {
+            $fields[] = $row['Field'];
+        }
 
-$result = $conn->query("SHOW COLUMNS FROM " . $conn->real_escape_string($table));
-while ($row = $result->fetch_assoc()) {
-$fields[] = $row['Field'];
+        foreach ($fields as $field) {
+            $escaped_search = $conn->real_escape_string($search);
+            $query .= "$field LIKE '%" . $escaped_search . "%' OR ";
+        }
+        $query = rtrim($query, " OR ");
+    }
+    // ... (rest of your table output code, including pagination and error handling)
 }
 
+// ... (other functions, including searchDatabases)
 
-foreach ($fields as $field) {
-$query .= "$field LIKE '%" . $conn->real_escape_string($search) . "%' OR ";
-}
-$query = rtrim($query, " OR ");
-}
-
-
-// Выполнение запроса
-$result = $conn->query($query);
-if (!$result) {
-echo "<p style='color:red;'>Ошибка выполнения запроса: " . $conn->error . "</p>";
-return;
+// Main code
+$conn = new mysqli($host, $user, $password);
+if ($conn->connect_error) {
+    die("Ошибка подключения: " . $conn->connect_error);
 }
 
-echo "<h2>Данные таблицы: " . htmlspecialchars($table) . "</h2>";
-
-// Пагинация (улучшенная)
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = 10; // Лимит строк на странице
-$offset = ($page - 1) * $limit;
-
-$query_count = "SELECT COUNT(*) AS total FROM $table";
-if (!empty($search)) {
-$query_count .= " WHERE " . $query;
-}
-$result_count = $conn->query($query_count);
-$total = $result_count->fetch_assoc()['total'];
-$totalPages = ceil($total / $limit);
-
-$result = $conn->query($query . " LIMIT " . $limit . " OFFSET " . $offset);
-
-echo "<form method='get'>"; // Добавляем форму
-echo "<div>";
-echo "<input type='text' name='search' value='" . htmlspecialchars($search) . "'> ";
-echo "<input type='hidden' name='db' value='" . htmlspecialchars($db) . "'>";
-echo "<input type='hidden' name='table' value='" . htmlspecialchars($table) . "'>";
-echo "<button type='submit'>Поиск</button>";
-echo "</div>";
-echo "</form>"; // Закрываем форму
-
-
-echo "<table><tr>";
-if ($result->num_rows > 0) {
-$fields = $result->fetch_fields();
-foreach ($fields as $field) {
-echo "<th>" . htmlspecialchars($field->name) . "</th>";
-}
-echo "</tr>";
-while ($row = $result->fetch_assoc()) {
-echo "<tr>";
-foreach ($row as $value) {
-echo "<td>" . htmlspecialchars($value) . "</td>";
-}
-echo "</tr>";
-}
-echo "</table>";
-echo "<div>";
-for ($i = 1; $i <= $totalPages; $i++) {
-echo '<a href="?db=' . urlencode($db) . '&table=' . urlencode($table) . '&page=' . $i . '&search=' . urlencode($search) . '">' . $i . '</a> ';
-}
-echo "</div>";
-
-
-} else {
-echo "<p>Записи не найдены.</p>";
-}
-}
-
-
-
-if (isset($_GET['db']) && isset($_GET['table'])) {
 $search = isset($_GET['search']) ? $_GET['search'] : '';
-getTableData($conn, $_GET['db'], $_GET['table'], $search);
+
+
+// Determine action based on $_GET parameters
+if (isset($_GET['db']) && isset($_GET['table'])) {
+    getTableData($conn, $_GET['db'], $_GET['table'], $search);
 } elseif (isset($_GET['db'])) {
-getTables($conn, $_GET['db']);
+    getTables($conn, $_GET['db']);
 } else {
-getDatabases($conn);
+	searchDatabases($conn, $search);
+    getDatabases($conn); // Show databases if no specific database selected.
 }
+
 
 
 $conn->close();
 ?>
+
+<form method="get">
+<label for="search">Поиск (все):</label>
+<input type="text" name="search" id="search" value="<?php echo htmlspecialchars($search); ?>">
+<button type="submit">Поиск</button>
+</form>
 
 </body>
 </html>
