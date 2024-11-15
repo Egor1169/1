@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -49,16 +48,11 @@ a:hover {
 $host = 'localhost'; // Обычно localhost
 $user = 'egor'; // Имя пользователя базы данных
 $password = '0000'; // Пароль пользователя базы данных
-
-// Соединение с сервером MySQL
 $conn = new mysqli($host, $user, $password);
-
-// Проверка соединения
 if ($conn->connect_error) {
     die("Ошибка подключения: " . $conn->connect_error);
 }
 
-// Функция для отображения баз данных
 function getDatabases($conn) {
     echo "<h2>Доступные базы данных</h2>";
     echo "<ul>";
@@ -69,7 +63,29 @@ function getDatabases($conn) {
     echo "</ul>";
 }
 
-// Функция для отображения таблиц
+function searchDatabases($conn, $search) {
+    echo "<h2>Результаты поиска для: " . htmlspecialchars($search) . "</h2>";
+    echo "<ul>";
+    $result = $conn->query("SHOW DATABASES");
+    while ($row = $result->fetch_assoc()) {
+        $dbName = $row['Database'];
+        if (stripos($dbName, $search) !== false) { // Если название базы данных содержит искомую строку
+            echo '<li><a href="?db=' . urlencode($dbName) . '">' . htmlspecialchars($dbName) . '</a></li>';
+        } else {
+            // Проверим наличие таблиц в этой базе данных
+            $conn->select_db($dbName);
+            $tablesResult = $conn->query("SHOW TABLES");
+            while ($tableRow = $tablesResult->fetch_row()) {
+                $tableName = $tableRow[0];
+                if (stripos($tableName, $search) !== false) {
+                    echo '<li><strong>' . htmlspecialchars($dbName) . '</strong>: <a href="?db=' . urlencode($dbName) . '&table=' . urlencode($tableName) . '">' . htmlspecialchars($tableName) . '</a></li>';
+                }
+            }
+        }
+    }
+    echo "</ul>";
+}
+
 function getTables($conn, $db) {
     $conn->select_db($db);
     echo "<h2>Таблицы в базе данных: " . htmlspecialchars($db) . "</h2>";
@@ -81,12 +97,9 @@ function getTables($conn, $db) {
     echo "</ul>";
 }
 
-// Функция для отображения данных таблицы с фильтрацией
 function getTableData($conn, $db, $table, $search = '') {
     $conn->select_db($db);
     echo "<h2>Данные таблицы: " . htmlspecialchars($table) . "</h2>";
-
-    // Вывод структуры таблицы
     $result = $conn->query("SHOW COLUMNS FROM " . $conn->real_escape_string($table));
     echo "<h3>Структура таблицы</h3>";
     echo "<table><tr><th>Поле</th><th>Тип</th></tr>";
@@ -95,31 +108,23 @@ function getTableData($conn, $db, $table, $search = '') {
     }
     echo "</table>";
 
-    // Пагинация
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $limit = 50;
     $offset = ($page - 1) * $limit;
-
-    // Поиск
     $whereClause = '';
     if ($search) {
         $search = $conn->real_escape_string($search);
         $whereClause = " WHERE CONCAT_WS(' ', " . implode(', ', array_column($conn->query("SHOW COLUMNS FROM " . $table)->fetch_all(MYSQLI_ASSOC), 'Field')) . ") LIKE '%$search%'";
     }
-
-    // Вывод данных таблицы с фильтрацией
     $result = $conn->query("SELECT * FROM " . $conn->real_escape_string($table) . $whereClause . " LIMIT $limit OFFSET $offset");
     echo "<h3>Данные таблицы</h3>";
     echo "<table><tr>";
-
-    // Получаем названия колонок
     if ($result->num_rows > 0) {
         $fields = $result->fetch_fields();
         foreach ($fields as $field) {
             echo "<th>" . htmlspecialchars($field->name) . "</th>";
         }
         echo "</tr>";
-
         while ($row = $result->fetch_assoc()) {
             echo "<tr>";
             foreach ($row as $value) {
@@ -131,13 +136,9 @@ function getTableData($conn, $db, $table, $search = '') {
         echo "<tr><td colspan='100%'>Ничего не найдено</td></tr>";
     }
     echo "</table>";
-
-    // Если есть данные для пагинации
     $resultTotal = $conn->query("SELECT COUNT(*) AS total FROM " . $conn->real_escape_string($table) . $whereClause);
     $total = $resultTotal->fetch_assoc()['total'];
     $totalPages = ceil($total / $limit);
-
-    // Вывод пагинации
     echo "<div>";
     for ($i = 1; $i <= $totalPages; $i++) {
         echo '<a href="?db=' . urlencode($db) . '&table=' . urlencode($table) . '&page=' . $i . '&search=' . urlencode($search) . '">' . $i . '</a> ';
@@ -145,8 +146,10 @@ function getTableData($conn, $db, $table, $search = '') {
     echo "</div>";
 }
 
-// Основная логика
-if (isset($_GET['db']) && isset($_GET['table'])) {
+if (isset($_GET['search']) && !empty($_GET['search'])) {
+    $search = $_GET['search'];
+    searchDatabases($conn, $search);
+} elseif (isset($_GET['db']) && isset($_GET['table'])) {
     $search = isset($_GET['search']) ? $_GET['search'] : '';
     getTableData($conn, $_GET['db'], $_GET['table'], $search);
 } elseif (isset($_GET['db'])) {
@@ -155,9 +158,7 @@ if (isset($_GET['db']) && isset($_GET['table'])) {
     getDatabases($conn);
 }
 
-// Закрытие соединения
 $conn->close();
 ?>
-
 </body>
 </html>
