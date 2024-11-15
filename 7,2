@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Браузер Баз Данных</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+h1 {
+    color: #4CAF50;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+table, th, td {
+    border: 1px solid #dddddd;
+    padding: 8px;
+}
+th {
+    background-color: #f2f2f2;
+}
+a {
+    color: #337ab7;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+
+<h1>Браузер Баз Данных</h1>
+
+<form method="GET">
+    <input type="text" name="search" placeholder="Поиск..." />
+    <input type="submit" value="Поиск" />
+</form>
+
+<?php
+// Конфигурация базы данных
+$host = 'localhost';
+$user = 'egor';
+$password = '0000';
+$conn = new mysqli($host, $user, $password);
+if ($conn->connect_error) {
+    die("Ошибка подключения: " . $conn->connect_error);
+}
+
+// ... (rest of your functions, including getTableData which you'll need):
+
+function searchDatabasesAndTables($conn, $search) {
+    $search = $conn->real_escape_string($search);
+    $results = [];
+
+    $databases = $conn->query("SHOW DATABASES");
+    while ($db = $databases->fetch_assoc()) {
+        $dbName = $db['Database'];
+        if (stripos($dbName, $search) !== false) {
+            $results[] = ['db' => $dbName, 'tables' => []];
+        }
+        if (count($results) == 0) {
+           $conn->select_db($dbName);
+            $tablesResult = $conn->query("SHOW TABLES");
+            if ($tablesResult) {
+                while ($tableRow = $tablesResult->fetch_row()) {
+                    $tableName = $tableRow[0];
+                    if (stripos($tableName, $search) !== false) {
+                        $results[] = ['db' => $dbName, 'tables' => [$tableName]];
+                    }
+                }
+            }
+           
+        }
+    }
+
+
+    if (empty($results)) {
+        echo "<h2>Ничего не найдено</h2>";
+        return;
+    }
+
+    echo "<h2>Результаты поиска:</h2>";
+    echo "<ul>";
+    foreach ($results as $result) {
+        $dbName = $result['db'];
+        $tables = $result['tables'];
+
+        echo "<li><strong>База данных: " . htmlspecialchars($dbName) . "</strong>";
+        if (!empty($tables)) {
+            echo "<ul>";
+            foreach ($tables as $table) {
+                echo '<li><a href="?db=' . urlencode($dbName) . '&table=' . urlencode($table) . '&search=' . urlencode($search) . '">' . htmlspecialchars($table) . '</a></li>';
+            }
+            echo "</ul>";
+        }
+        echo "</li>";
+    }
+    echo "</ul>";
+}
+
+// ... (rest of your PHP code, including getTableData function)
+
+//This is essential for preventing errors that you'll encounter in getTableData.
+function getTableData($conn, $db, $table, $search) {
+    if (!$conn->select_db($db)) {
+        die("Ошибка выбора базы данных: " . $conn->error);
+    }
+
+    // ... rest of getTableData function
+}
+
+
+
+if (isset($_GET['search']) && !empty($_GET['search'])) {
+    $search = $_GET['search'];
+    searchDatabasesAndTables($conn, $search);
+}
+
+// ... (rest of your code)
+
+
+$conn->close();
+
+?>
+</body>
+</html>
