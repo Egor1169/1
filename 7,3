@@ -6,29 +6,26 @@
 <title>Браузер Баз Данных</title>
 <style>
 body {
-font-family: Arial, sans-serif;
-margin: 20px;
+    font-family: Arial, sans-serif;
+    margin: 20px;
 }
 h1 {
-color: #4CAF50;
-}
-table {
-width: 100%;
-border-collapse: collapse;
+    color: #4CAF50;
 }
 table, th, td {
-border: 1px solid #dddddd;
-padding: 8px;
+    border: 1px solid #dddddd;
+    padding: 8px;
+    border-collapse: collapse;
 }
 th {
-background-color: #f2f2f2;
+    background-color: #f2f2f2;
 }
 a {
-color: #337ab7;
-text-decoration: none;
+    color: #337ab7;
+    text-decoration: none;
 }
 a:hover {
-text-decoration: underline;
+    text-decoration: underline;
 }
 </style>
 </head>
@@ -37,97 +34,102 @@ text-decoration: underline;
 <h1>Браузер Баз Данных</h1>
 
 <?php
-// Конфигурация базы данных (замените на свои данные!)
+// Конфигурация базы данных (Замените на ваши значения!)
 $host = 'localhost';
 $user = 'your_username';
 $password = 'your_password';
 $database = 'your_database_name';
 
-// Соединение с базой данных
+// Соединение с сервером MySQL
 $conn = new mysqli($host, $user, $password, $database);
 
+// Проверка соединения
 if ($conn->connect_error) {
     die("Ошибка подключения: " . $conn->connect_error);
 }
 
-// Функция для определения наиболее часто встречающегося символа
-function getMostFrequentChar($str) {
-    if (empty($str) || !is_string($str)) {
-        return '';
+
+function getDatabases($conn) {
+    echo "<h2>Доступные базы данных</h2>";
+    echo "<ul>";
+    $result = $conn->query("SHOW DATABASES");
+    while ($row = $result->fetch_assoc()) {
+        echo '<li><a href="?db=' . urlencode($row['Database']) . '">' . htmlspecialchars($row['Database']) . '</a></li>';
     }
-    $charCounts = array_count_values(str_split($str));
-    if (empty($charCounts)) {
-        return ''; // Для пустых строк
+    echo "</ul>";
+}
+
+function getTables($conn, $db) {
+    $conn->select_db($db);
+    echo "<h2>Таблицы в базе данных: " . htmlspecialchars($db) . "</h2>";
+    echo "<ul>";
+    $result = $conn->query("SHOW TABLES");
+    while ($row = $result->fetch_row()) {
+        echo '<li><a href="?db=' . urlencode($db) . '&table=' . urlencode($row[0]) . '">' . htmlspecialchars($row[0]) . '</a></li>';
     }
-    return array_search(max($charCounts), $charCounts);
+    echo "</ul>";
 }
 
 
-// Функция для отображения данных таблицы
-function getTableData($conn, $table, $columnForAnalysis) {
+function getTableData($conn, $db, $table) {
+    $conn->select_db($db);
     echo "<h2>Данные таблицы: " . htmlspecialchars($table) . "</h2>";
 
-	// Проверка существования колонки (защита от ошибок)
-	$result = $conn->query("DESCRIBE " . $table);
-	if (!$result || !in_array($columnForAnalysis, array_column($result->fetch_all(MYSQLI_ASSOC), 'Field'))) {
-		echo "<p>Таблицы или столбец не найден.</p>";
-		return;
-	}
-	
-    // Вывод структуры таблицы
-    $result = $conn->query("SHOW COLUMNS FROM " . $table);
+    $result = $conn->query("SHOW COLUMNS FROM " . $conn->real_escape_string($table));
+
     echo "<h3>Структура таблицы</h3>";
-    echo "<table><tr><th>Поле</th><th>Тип</th></tr>";
+    echo "<table><tr><th>Поле</th><th>Тип</th><th>Популярный символ</th></tr>";
+
     while ($row = $result->fetch_assoc()) {
-        echo "<tr><td>" . htmlspecialchars($row['Field']) . "</td><td>" . htmlspecialchars($row['Type']) . "</td></tr>";
+        $fieldName = $row['Field'];
+        $fieldType = $row['Type'];
+
+        echo "<tr><td>" . htmlspecialchars($fieldName) . "</td><td>" . htmlspecialchars($fieldType) . "</td><td>";
+
+        $popularChar = getPopularChar($conn, $fieldName, $table);
+        echo htmlspecialchars($popularChar);
+
+        echo "</td></tr>";
     }
     echo "</table>";
-
-    // Отображение данных с пагинацией
-    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-    $limit = 50;
-    $offset = ($page - 1) * $limit;
-
-    $sql = "SELECT * FROM " . $table . " LIMIT $limit OFFSET $offset";
-    $result = $conn->query($sql);
-	
-	if (!$result) {
-        die("Ошибка запроса: " . $conn->error);
-    }
+}
 
 
-    echo "<h3>Данные таблицы</h3>";
-    echo "<table><tr>";
+function getPopularChar($conn, $fieldName, $table) {
+    $popularChar = '';
+    $charCounts = [];
 
-    $fields = $result->fetch_fields();
-    foreach ($fields as $field) {
-        echo "<th>" . htmlspecialchars($field->name) . "</th>";
-    }
-    echo "<th>Самый популярный символ</th></tr>";
+    $result = $conn->query("SELECT `$fieldName` FROM `$table`");
 
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr>";
-        foreach ($row as $value) {
-            echo "<td>" . htmlspecialchars($value) . "</td>";
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $value = $row[$fieldName] ?? '';
+            if (is_string($value)) {
+                $chars = str_split($value);
+                foreach ($chars as $char) {
+                    $charCounts[$char] = $charCounts[$char] ?? 0 + 1;
+                }
+            }
         }
-
-		// Извлечение значения из указанного столбца
-        $charAnalysis = $row[$columnForAnalysis];
-        $popularChar = getMostFrequentChar($charAnalysis);
-
-        echo "<td>" . htmlspecialchars($popularChar) . "</td>";
-        echo "</tr>";
+        if (!empty($charCounts)) {
+            arsort($charCounts);
+            $popularChar = key($charCounts);
+        }
     }
-    echo "</table>";
+
+    return $popularChar;
 }
 
-//Обработка запроса
-if (isset($_GET['table']) && isset($_GET['column'])) {
-    getTableData($conn, $_GET['table'], $_GET['column']);
+
+
+// Основная логика
+if (isset($_GET['db']) && isset($_GET['table'])) {
+    getTableData($conn, $_GET['db'], $_GET['table']);
+} elseif (isset($_GET['db'])) {
+    getTables($conn, $_GET['db']);
 } else {
-    echo "<p>Укажите таблицу и столбец для анализа.</p>";
+    getDatabases($conn);
 }
-
 
 $conn->close();
 ?>
