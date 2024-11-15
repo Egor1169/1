@@ -12,10 +12,13 @@ body {
 h1 {
     color: #4CAF50;
 }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
 table, th, td {
     border: 1px solid #dddddd;
     padding: 8px;
-    border-collapse: collapse;
 }
 th {
     background-color: #f2f2f2;
@@ -27,6 +30,19 @@ a {
 a:hover {
     text-decoration: underline;
 }
+.error {
+    color: red;
+    font-style: italic;
+}
+.popular-chars {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.popular-chars ul {
+    list-style: disc;
+    padding-left: 20px;
+}
 </style>
 </head>
 <body>
@@ -34,101 +50,85 @@ a:hover {
 <h1>Браузер Баз Данных</h1>
 
 <?php
-// Конфигурация базы данных (Замените на ваши значения!)
+// Конфигурация базы данных (замените на ваши данные)
 $host = 'localhost';
 $user = 'your_username';
 $password = 'your_password';
-$database = 'your_database_name';
 
 // Соединение с сервером MySQL
-$conn = new mysqli($host, $user, $password, $database);
+$conn = new mysqli($host, $user, $password);
 
 // Проверка соединения
 if ($conn->connect_error) {
-    die("Ошибка подключения: " . $conn->connect_error);
+    die("<div class='error'>Ошибка подключения: " . $conn->connect_error . "</div>");
 }
 
+function displayPopularChars($conn, $table) {
+    $popularChars = [];
+    $sql = "SHOW COLUMNS FROM $table";
+    $resultColumns = $conn->query($sql);
+    if (!$resultColumns) {
+        echo "<li class='error'>Ошибка получения столбцов для таблицы $table: " . $conn->error . "</li>";
+        return;
+    }
 
-function getDatabases($conn) {
-    echo "<h2>Доступные базы данных</h2>";
-    echo "<ul>";
-    $result = $conn->query("SHOW DATABASES");
-    while ($row = $result->fetch_assoc()) {
-        echo '<li><a href="?db=' . urlencode($row['Database']) . '">' . htmlspecialchars($row['Database']) . '</a></li>';
+    while ($column = $resultColumns->fetch_assoc()) {
+        $columnName = $column['Field'];
+        $sql = "SELECT SUBSTRING(?, 1, 1) AS first_char FROM `$table` WHERE LENGTH(?) > 0 GROUP BY first_char ORDER BY COUNT(*) DESC LIMIT 1";
+        $stmt = $conn->prepare($sql);
+
+        $stmt->bind_param("ss", $columnName, $columnName);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $popularChars[$columnName] = $row['first_char'];
+        } else {
+            $popularChars[$columnName] = '<i>Не найдено символов</i>';
+        }
+
+        $stmt->close();
+    }
+    $resultColumns->close();
+
+	echo "<ul>";
+    foreach ($popularChars as $column => $char) {
+        echo "<li><b>$column:</b> " . htmlspecialchars($char) . "</li>";
     }
     echo "</ul>";
 }
 
-function getTables($conn, $db) {
+function displayPopularCharsForAllTables($conn, $db) {
     $conn->select_db($db);
-    echo "<h2>Таблицы в базе данных: " . htmlspecialchars($db) . "</h2>";
-    echo "<ul>";
-    $result = $conn->query("SHOW TABLES");
-    while ($row = $result->fetch_row()) {
-        echo '<li><a href="?db=' . urlencode($db) . '&table=' . urlencode($row[0]) . '">' . htmlspecialchars($row[0]) . '</a></li>';
+
+    echo "<div class='popular-chars'>";
+    echo "<h2>Популярные символы во всех таблицах базы данных: $db</h2>";
+
+    $tablesResult = $conn->query("SHOW TABLES");
+    if (!$tablesResult) {
+        echo "<li class='error'>Ошибка при получении списка таблиц: " . $conn->error . "</li>";
+        return;
     }
-    echo "</ul>";
+
+    while ($table = $tablesResult->fetch_row()) {
+        $tableName = $table[0];
+
+      try {
+          displayPopularChars($conn, $tableName);
+      } catch(mysqli_sql_exception $e) {
+        echo "<li class='error'>Ошибка при выводе популярных символов для таблицы $tableName: " . $e->getMessage() . "</li>";
+      }
+    }
+	echo "</div>";
+
+    $tablesResult->close();
 }
 
 
-function getTableData($conn, $db, $table) {
-    $conn->select_db($db);
-    echo "<h2>Данные таблицы: " . htmlspecialchars($table) . "</h2>";
-
-    $result = $conn->query("SHOW COLUMNS FROM " . $conn->real_escape_string($table));
-
-    echo "<h3>Структура таблицы</h3>";
-    echo "<table><tr><th>Поле</th><th>Тип</th><th>Популярный символ</th></tr>";
-
-    while ($row = $result->fetch_assoc()) {
-        $fieldName = $row['Field'];
-        $fieldType = $row['Type'];
-
-        echo "<tr><td>" . htmlspecialchars($fieldName) . "</td><td>" . htmlspecialchars($fieldType) . "</td><td>";
-
-        $popularChar = getPopularChar($conn, $fieldName, $table);
-        echo htmlspecialchars($popularChar);
-
-        echo "</td></tr>";
-    }
-    echo "</table>";
-}
-
-
-function getPopularChar($conn, $fieldName, $table) {
-    $popularChar = '';
-    $charCounts = [];
-
-    $result = $conn->query("SELECT `$fieldName` FROM `$table`");
-
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $value = $row[$fieldName] ?? '';
-            if (is_string($value)) {
-                $chars = str_split($value);
-                foreach ($chars as $char) {
-                    $charCounts[$char] = $charCounts[$char] ?? 0 + 1;
-                }
-            }
-        }
-        if (!empty($charCounts)) {
-            arsort($charCounts);
-            $popularChar = key($charCounts);
-        }
-    }
-
-    return $popularChar;
-}
-
-
-
-// Основная логика
-if (isset($_GET['db']) && isset($_GET['table'])) {
-    getTableData($conn, $_GET['db'], $_GET['table']);
-} elseif (isset($_GET['db'])) {
-    getTables($conn, $_GET['db']);
-} else {
-    getDatabases($conn);
+if (isset($_GET['db'])) {
+  $db = $_GET['db'];
+  displayPopularCharsForAllTables($conn, $db);
 }
 
 $conn->close();
