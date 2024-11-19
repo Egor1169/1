@@ -1,0 +1,22 @@
+1<!DOCTYPE html>
+2<html lang="ru">
+3<head>
+4    <meta charset="UTF-8">
+5    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+6    <link rel="stylesheet" href="styles.css">
+7    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+8    <title>Фото Галерея</title>
+9</head>
+10<body>
+11    <div class="container">
+12        <h1>Фото Галерея</h1>
+13        <form id="uploadForm" enctype="multipart/form-data">
+14            <input type="file" name="image" accept="image/*" required>
+15            <input type="text" name="description" placeholder="Описание" required>
+16            <button type="submit">Загрузить</button>
+17        </form>
+18        <div id="gallery"></div>
+19    </div>
+20    <script src="script.js"></script>
+21</body>
+22</html>
