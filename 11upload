@@ -1,0 +1,42 @@
+1<?php
+2if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+3    $targetDir = "images/";
+4    $imageFileType = strtolower(pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION));
+5    $fileName = basename($_FILES["image"]["name"]);
+6    $targetFilePath = $targetDir . $fileName;
+7
+8    // Проверка на существование файла
+9    if (file_exists($targetFilePath)) {
+10        echo json_encode(["error" => "Файл с таким именем уже существует."]);
+11        exit;
+12    }
+13
+14    // Загрузка изображения
+15    if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFilePath)) {
+16        // Создание превью
+17        createThumbnail($targetFilePath);
+18        echo json_encode(["success" => "Файл успешно загружен."]);
+19    } else {
+20        echo json_encode(["error" => "Ошибка загрузки файла."]);
+21    }
+22}
+23
+24function createThumbnail($filePath) {
+25    $thumbnailPath = 'images/preview_' . basename($filePath);
+26    list($width, $height) = getimagesize($filePath);
+27    $thumbWidth = 150;
+28    $thumbHeight = ($height / $width) * $thumbWidth;
+29
+30    $src = imagecreatefromstring(file_get_contents($filePath));
+31    $dst = imagecreatetruecolor($thumbWidth, $thumbHeight);
+32    imagecopyresampled($dst, $src, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $width, $height);
+33    
+34    // Нанесение даты и времени
+35    $textColor = imagecolorallocate($dst, 255, 255, 255);
+36    $dateTime = date('Y-m-d H:i:s');
+37    imagestring($dst, 5, 10, 10, $dateTime, $textColor);
+38    imagejpeg($dst, $thumbnailPath);
+39    imagedestroy($src);
+40    imagedestroy($dst);
+41}
+42?>
