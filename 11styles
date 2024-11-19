@@ -1,0 +1,52 @@
+1body {
+2    font-family: Arial, sans-serif;
+3    background-color: #f4f4f4;
+4    margin: 0;
+5    padding: 20px;
+6}
+7
+8.container {
+9    max-width: 800px;
+10    margin: auto;
+11    background: white;
+12    padding: 20px;
+13    border-radius: 8px;
+14    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+15}
+16
+17h1 {
+18    text-align: center;
+19}
+20
+21form {
+22    display: flex;
+23    justify-content: space-between;
+24    margin-bottom: 20px;
+25}
+26
+27input[type="file"], input[type="text"] {
+28    margin-right: 10px;
+29}
+30
+31#gallery {
+32    display: flex;
+33    flex-wrap: wrap;
+34    gap: 10px;
+35}
+36
+37.image-preview {
+38    position: relative;
+39    cursor: pointer;
+40}
+41
+42.image-preview img {
+43    max-width: 150px;
+44    border-radius: 5px;
+45}
+46
+47.image-preview .description {
+48    position: absolute;
+49    bottom: 0;
+50    left: 0;
+51    right: 0;
+52    background: rgba(0, 0, 0, 0
