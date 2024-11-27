@@ -1,0 +1,96 @@
+<?php
+date_default_timezone_set('Europe/Moscow');
+
+if (!file_exists(__FILE__)) {
+    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Неверный путь.</div>';
+    echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Галерея</title>
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="lightbox.min.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css">
+</head>
+<body>
+    <div class="header-block">
+        <h1>Фото-галерея <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/file-media-24.svg" alt="gallery icon"></h1> 
+    </div>
+    <div class="gallery">
+        <?php
+        $uploadDir = 'uploads/';
+        $watermarkedDir = 'watermarked/';
+        $thumbnailDir = 'thumbnails/';
+        $files = scandir($uploadDir);
+        $images = array();
+
+        foreach ($files as $file) {
+            if (in_array(pathinfo($file, PATHINFO_EXTENSION), array('jpg', 'jpeg', 'png', 'gif'))) {
+                $descriptionFile = $uploadDir . pathinfo($file, PATHINFO_FILENAME) . '.txt';
+                $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+                $descriptionParts = explode("\n", $descriptionContent);
+                $uploadTime = isset($descriptionParts[1]) ? $descriptionParts[1] : 0;
+                $images[$file] = $uploadTime;
+            }
+        }
+
+        arsort($images);
+
+        $totalImages = count($images);
+
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $imagesPerPage = 1;
+        $startIndex = ($page - 1) * $imagesPerPage;
+        $endIndex = $startIndex + $imagesPerPage;
+
+        $currentIndex = 0;
+        foreach ($images as $image => $uploadTime) {
+            if ($currentIndex >= $startIndex && $currentIndex < $endIndex) {
+                $thumbnailPath = $thumbnailDir . $image . '?v=' . time();
+                $watermarkedPath = $watermarkedDir . $image . '?v=' . time();
+                $descriptionFile = $uploadDir . pathinfo($image, PATHINFO_FILENAME) . '.txt';
+                $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+                $descriptionParts = explode("\n", $descriptionContent);
+                $description = isset($descriptionParts[0]) ? $descriptionParts[0] : 'Без описания';
+                $uploadDate = $uploadTime ? date('d.m.Y H:i:s', $uploadTime) : 'Неизвестно';
+
+                echo '<div class="image-container">';
+                echo '<a href="view_image.php?image=' . urlencode($image) . '" target="_blank">';
+                echo '<img src="' . $thumbnailPath . '" alt="' . $description . '">';
+                echo '</a>';
+                echo '</div>';
+                echo '<div class="description">' . $description . '</div>';
+                echo '<form action="delete.php" method="post" class="delete-form">';
+                echo '<input type="hidden" name="image" value="' . $image . '">';
+                echo '<button type="submit" class="delete-button"><span class="octicon octicon-trashcan"></span> Удалить</button>';
+                echo '</form>';
+            }
+            $currentIndex++;
+        }
+
+        if ($currentIndex == 0) {
+            echo '<p>Изображения не найдены.</p>';
+        }
+        ?>
+    </div>
+    <div class="pagination">
+        <?php
+        for ($i = 1; $i <= ceil($totalImages / $imagesPerPage); $i++) {
+            if ($i == $page) {
+                echo '<span class="current-page">' . $i . '</span> ';
+            } else {
+                echo '<a href="gallery.php?page=' . $i . '">' . $i . '</a> ';
+            }
+        }
+        ?>
+    </div>
+    <a href="index.php">Загрузить еще</a>
+
+    <script src="lightbox.min.js?v=<?php echo time(); ?>"></script>
+</body>
+</html>
