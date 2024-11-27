@@ -1,0 +1,45 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+date_default_timezone_set('Europe/Moscow');
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $uploadDir = 'uploads/';
+    $watermarkedDir = 'watermarked/';
+    $thumbnailDir = 'thumbnails/';
+    $imageName = basename($_POST['image']);
+
+    // Удаление оригинального изображения
+    $uploadFile = $uploadDir . $imageName;
+    if (file_exists($uploadFile)) {
+        unlink($uploadFile);
+    }
+
+    // Удаление водяного знака
+    $watermarkedFile = $watermarkedDir . $imageName;
+    if (file_exists($watermarkedFile)) {
+        unlink($watermarkedFile);
+    }
+
+    // Удаление миниатюры
+    $thumbnailFile = $thumbnailDir . $imageName;
+    if (file_exists($thumbnailFile)) {
+        unlink($thumbnailFile);
+    }
+
+    // Удаление файла описания
+    $descriptionFile = $uploadDir . pathinfo($imageName, PATHINFO_FILENAME) . '.txt';
+    if (file_exists($descriptionFile)) {
+        unlink($descriptionFile);
+    }
+
+    header('Location: gallery.php');
+    exit;
+} else {
+    echo 'Ошибка: Недопустимый метод запроса.';
+    echo '<br><a href="gallery.php"><button>Вернуться в галерею</button></a>';
+    exit;
+}
+?>
