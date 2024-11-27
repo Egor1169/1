@@ -1,0 +1,44 @@
+<?php
+date_default_timezone_set('Europe/Moscow');
+
+if (isset($_GET['image'])) {
+    $image = basename($_GET['image']);
+    $watermarkedDir = 'watermarked/';
+    $watermarkedPath = $watermarkedDir . $image;
+
+    if (file_exists($watermarkedPath)) {
+        $descriptionFile = 'uploads/' . pathinfo($image, PATHINFO_FILENAME) . '.txt';
+        $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+        $descriptionParts = explode("\n", $descriptionContent);
+        $description = isset($descriptionParts[0]) ? $descriptionParts[0] : 'Без описания';
+        $uploadTime = isset($descriptionParts[1]) ? $descriptionParts[1] : '';
+        $uploadDate = $uploadTime ? date('d.m.Y H:i:s', $uploadTime) : 'Неизвестно';
+    } else {
+        echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Изображение не найдено.</div>';
+        echo '<br><a href="gallery.php"><button>Вернуться в галерею</button></a>';
+        exit;
+    }
+} else {
+    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Изображение не указано.</div>';
+    echo '<br><a href="gallery.php"><button>Вернуться в галерею</button></a>';
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Просмотр изображения</title>
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+</head>
+<body>
+    <div class="header-block">
+        <h1>Просмотр изображения <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/file-media-24.svg" alt="gallery icon"></h1> 
+    </div>
+    <div class="image-container">
+        <img src="<?php echo $watermarkedPath; ?>" alt="<?php echo $description; ?>">
+    </div>
+    <a href="gallery.php" class="back-button">Вернуться к галерее</a>
+</body>
+</html>
