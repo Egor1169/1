@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фото-галерея</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lightbox.min.css">  <!-- Remove ?v= -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        .header-block {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header-block h1 {
+            margin: 0;
+        }
+        .header-block img {
+            vertical-align: middle;
+            width: 24px;  /* Adjust size as needed */
+            height: 24px;  /* Adjust size as needed */
+            margin-left: 10px;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .custom-file-upload {
+            display: block;
+            width: 100%;
+            text-align: left;
+            color: #555;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex; /* Important for inline alignment */
+            align-items: center; /* Vertically center the elements */
+        }
+
+        .custom-file-upload span {
+            margin-right: 10px; /* Add some space between span and image */
+        }
+
+        .custom-file-upload img {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+
+        .error {
+            color: red;
+            font-style: italic;
+            margin: 10px;
+        }
+
+        .material-icons {
+            font-family: "Material Icons";
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px; /* Or whatever size you need */
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;  /* Prevents wrapping */
+            word-wrap: normal;
+        }
+        input[type="file"], input[type="text"]{
+          width: calc(100% - 40px);
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          margin-left: 10px;
+          display: inline-block;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="header-block">
+        <h1>Фото-галерея <span class="material-icons">image</span></h1>
+    </div>
+
+    <div class="form-container">
+        <form action="upload.php" method="post" enctype="multipart/form-data" class="form-left">
+            <div class="form-group">
+                <label for="image" class="custom-file-upload">
+                    <span>Выберите изображение</span><span class="material-icons">attach_file</span>
+                    <input type="file" name="image" id="image" required>
+                </label>
+				<?php
+					if(isset($_GET['error']) && $_GET['error'] == 'emptyfile'){
+						echo "<p class='error'>Выберите файл!</p>";
+					}
+				?>
+            </div>
+
+            <div class="form-group">
+                <label for="description" class="custom-file-upload">
+                    <span>Описание:</span><span class="material-icons">description</span>
+                    <input type="text" name="description" id="description" required>
+                </label>
+            </div>
+
+            <button type="submit">Загрузить <span class="material-icons">cloud_upload</span></button>
+        </form>
+    </div>
+    <a href="gallery.php">Перейти к галерее</a>
+</body>
+</html>
