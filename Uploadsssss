@@ -1,0 +1,188 @@
+<?php
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $uploadDir = 'uploads/';
+    $watermarkedDir = 'watermarked/';
+    $thumbnailDir = 'thumbnails/';
+    $uploadFile = $uploadDir . basename($_FILES['image']['name']);
+    $watermarkedFile = $watermarkedDir . basename($_FILES['image']['name']);
+    $thumbnailFile = $thumbnailDir . basename($_FILES['image']['name']);
+    $description = htmlspecialchars($_POST['description']);
+    $uploadTime = time();
+
+    $imageFileType = strtolower(pathinfo($uploadFile, PATHINFO_EXTENSION));
+    $allowedTypes = array('jpg', 'jpeg', 'png', 'gif');
+
+    if (!in_array($imageFileType, $allowedTypes)) {
+        echo '<div class="error-message"> <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Разрешены только файлы JPG, JPEG, PNG и GIF.</div>';
+        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+        exit;
+    }
+
+    if (file_exists($uploadFile)) {
+        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Файл с таким именем уже существует.</div>';
+        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+        exit;
+    }
+
+    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+        $descriptionFile = $uploadDir . pathinfo($uploadFile, PATHINFO_FILENAME) . '.txt';
+        file_put_contents($descriptionFile, $description . "\n" . $uploadTime);
+
+        $watermarkPath = __DIR__ . '/watermark.png';
+        if (file_exists($watermarkPath)) {
+            $watermark = imagecreatefrompng($watermarkPath);
+            if ($watermark === false) {
+                echo "Error loading watermark: " . error_get_last()['message'];
+                exit;
+            }
+            $watermarkWidth = imagesx($watermark);
+            $watermarkHeight = imagesy($watermark);
+            $scaleFactor = 0.5;
+            $newWatermarkWidth = (int)($watermarkWidth * $scaleFactor);
+            $newWatermarkHeight = (int)($watermarkHeight * $scaleFactor);
+
+            $resizedWatermark = imagescale($watermark, $newWatermarkWidth, $newWatermarkHeight);
+            if ($resizedWatermark === false) {
+                echo "Error resizing watermark: " . error_get_last()['message'];
+                imagedestroy($watermark);
+                exit;
+            }
+
+            $image = null;
+            switch (strtolower(pathinfo($uploadFile, PATHINFO_EXTENSION))) {
+                case 'jpg':
+                case 'jpeg':
+                    $image = imagecreatefromjpeg($uploadFile);
+                    break;
+                case 'png':
+                    $image = imagecreatefrompng($uploadFile);
+                    break;
+                case 'gif':
+                    $image = imagecreatefromgif($uploadFile);
+                    break;
+                default:
+                    echo "Unsupported image type";
+                    imagedestroy($watermark);
+                    imagedestroy($resizedWatermark);
+                    exit;
+            }
+            if ($image === false) {
+                echo "Error loading image: " . error_get_last()['message'];
+                imagedestroy($watermark);
+                imagedestroy($resizedWatermark);
+                exit;
+            }
+
+            $imageWidth = imagesx($image);
+            $imageHeight = imagesy($image);
+            $x = $imageWidth - $newWatermarkWidth - 10;
+            $y = $imageHeight - $newWatermarkHeight - 10;
+            imagecopy($image, $resizedWatermark, $x, $y, 0, 0, $newWatermarkWidth, $newWatermarkHeight);
+            if (!imagepng($image, $watermarkedFile)) {
+                echo "Error saving watermarked image: " . error_get_last()['message'];
+                imagedestroy($image);
+                imagedestroy($resizedWatermark);
+                imagedestroy($watermark);
+                exit;
+            }
+
+            imagedestroy($image);
+            imagedestroy($resizedWatermark);
+            imagedestroy($watermark);
+
+
+            $thumbWidth = 400;
+            $thumbHeight = intval($thumbWidth * $imageHeight / $imageWidth);
+            $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
+            if ($thumbImage === false) {
+                echo "Error creating thumbnail: " . error_get_last()['message'];
+                exit;
+            }
+
+            $sourceImage = null;
+            switch (strtolower(pathinfo($uploadFile, PATHINFO_EXTENSION))) {
+                case 'jpg':
+                case 'jpeg':
+                    $sourceImage = imagecreatefromjpeg($uploadFile);
+                    break;
+                case 'png':
+                    $sourceImage = imagecreatefrompng($uploadFile);
+                    break;
+                case 'gif':
+                    $sourceImage = imagecreatefromgif($uploadFile);
+                    break;
+                default:
+                    echo "Unsupported image type for thumbnail";
+                    exit;
+            }
+            if ($sourceImage === false) {
+                echo "Error loading image for thumbnail: " . error_get_last()['message'];
+                imagedestroy($thumbImage);
+                exit;
+            }
+
+
+            imagecopyresampled($thumbImage, $sourceImage, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight);
+            if ($thumbImage === false) {
+                echo "Error creating thumbnail: " . error_get_last()['message'];
+                imagedestroy($sourceImage);
+                imagedestroy($thumbImage);
+                exit;
+            }
+
+            imagefilter($thumbImage, IMG_FILTER_PIXELATE, 3, true);
+            imagefilter($thumbImage, IMG_FILTER_SMOOTH, -2);
+            $textColor = imagecolorallocate($thumbImage, 255, 255, 255);
+            $outlineColor = imagecolorallocate($thumbImage, 0, 0, 0);
+            $uploadDate = date('d.m.Y H:i:s', $uploadTime);
+            $fontSize = 12;
+            $fontFile = __DIR__ . '/arial.ttf'; // Replace with your font path
+
+            if (!file_exists($fontFile)) {
+                echo "Error: Font file not found: $fontFile";
+                imagedestroy($thumbImage);
+                imagedestroy($sourceImage);
+                exit;
+            }
+
+            $textBox = imagettfbbox($fontSize, 0, $fontFile, $uploadDate);
+            $textWidth = $textBox[2] - $textBox[0];
+            $textHeight = $textBox[7] - $textBox[1];
+            $x = 10;
+            $y = $thumbHeight - 10;
+
+            $outlineThickness = 2;
+            for ($c = -$outlineThickness; $c <= $outlineThickness; $c++) {
+                for ($d = -$outlineThickness; $d <= $outlineThickness; $d++) {
+                    if ($c != 0 || $d != 0) {
+                        imagettftext($thumbImage, $fontSize, 0, $x + $c, $y + $d, $outlineColor, $fontFile, $uploadDate);
+                    }
+                }
+            }
+
+            imagettftext($thumbImage, $fontSize, 0, $x, $y, $textColor, $fontFile, $uploadDate);
+
+            if (!imagepng($thumbImage, $thumbnailFile)) {
+                echo "Error saving thumbnail: " . error_get_last()['message'];
+                imagedestroy($thumbImage);
+                imagedestroy($sourceImage);
+                exit;
+            }
+
+            imagedestroy($thumbImage);
+            imagedestroy($sourceImage);
+
+            header('Location: gallery.php');
+            exit;
+        } else {
+            echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Файл водяного знака не найден.</div>';
+            echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+            exit;
+        }
+    } else {
+        echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка при загрузке файла.</div>';
+        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+        exit;
+    }
+}
+?>
