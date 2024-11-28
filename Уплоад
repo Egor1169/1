@@ -1,0 +1,124 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+date_default_timezone_set('Europe/Moscow');
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $uploadDir = 'uploads/';
+    $watermarkedDir = 'watermarked/';
+    $thumbnailDir = 'thumbnails/';
+
+    // Sanitize user input!  This is crucial to prevent XSS vulnerabilities.
+    $description = htmlspecialchars($_POST['description'], ENT_QUOTES, 'UTF-8');
+
+    $uploadFile = $uploadDir . basename($_FILES['image']['name']);
+    $watermarkedFile = $watermarkedDir . basename($_FILES['image']['name']);
+    $thumbnailFile = $thumbnailDir . basename($_FILES['image']['name']);
+    $uploadTime = time();
+
+    $imageFileType = strtolower(pathinfo($uploadFile, PATHINFO_EXTENSION));
+    $allowedTypes = array('jpg', 'jpeg', 'png', 'gif');
+
+    if (!in_array($imageFileType, $allowedTypes)) {
+        echo '<div class="error-message"> <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Разрешены только файлы JPG, JPEG, PNG и GIF.</div>';
+        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+        exit;
+    }
+
+    if (file_exists($uploadFile)) {
+        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Файл с таким именем уже существует.</div>';
+        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+        exit;
+    }
+
+    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+        $imageData = [
+            "description" => $description,
+            "uploadTime" => $uploadTime,
+            "originalFilename" => $_FILES['image']['name'],
+            "fileSize" => $_FILES['image']['size'],
+            "fileType" => $_FILES['image']['type'],
+            "serverIP" => $_SERVER['SERVER_ADDR'],
+            "clientIP" => $_SERVER['REMOTE_ADDR'],
+            "phpVersion" => PHP_VERSION,
+        ];
+
+        $image = imagecreatefromstring(file_get_contents($uploadFile));
+        $imageData["width"] = imagesx($image);
+        $imageData["height"] = imagesy($image);
+        imagedestroy($image);
+
+        $descriptionFile = $uploadDir . pathinfo($uploadFile, PATHINFO_FILENAME) . '.json';
+        file_put_contents($descriptionFile, json_encode($imageData, JSON_PRETTY_PRINT));
+
+
+        $watermarkPath = __DIR__ . '/watermark.png';
+        if (file_exists($watermarkPath)) {
+            $watermark = imagecreatefrompng($watermarkPath);
+            $watermarkWidth = imagesx($watermark);
+            $watermarkHeight = imagesy($watermark);
+            $scaleFactor = 0.5;
+            $newWatermarkWidth = (int)($watermarkWidth * $scaleFactor);
+            $newWatermarkHeight = (int)($watermarkHeight * $scaleFactor);
+            $resizedWatermark = imagescale($watermark, $newWatermarkWidth, $newWatermarkHeight);
+
+            $image = imagecreatefromstring(file_get_contents($uploadFile));
+            $imageWidth = imagesx($image);
+            $imageHeight = imagesy($image);
+            $x = $imageWidth - $newWatermarkWidth - 10;
+            $y = $imageHeight - $newWatermarkHeight - 10;
+            imagecopy($image, $resizedWatermark, $x, $y, 0, 0, $newWatermarkWidth, $newWatermarkHeight);
+
+            imagepng($image, $watermarkedFile);
+            imagedestroy($image);
+            imagedestroy($resizedWatermark);
+
+            $thumbWidth = 400;
+            $thumbHeight = intval($thumbWidth * $imageHeight / $imageWidth);
+            $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
+            imagecopyresampled($thumbImage, imagecreatefromstring(file_get_contents($uploadFile)), 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight);
+
+            imagefilter($thumbImage, IMG_FILTER_PIXELATE, 3, true);
+            imagefilter($thumbImage, IMG_FILTER_SMOOTH, -2);
+            $textColor = imagecolorallocate($thumbImage, 255, 255, 255);
+            $outlineColor = imagecolorallocate($thumbImage, 0, 0, 0);
+            $uploadDate = date('d.m.Y H:i:s', $uploadTime);
+            $fontSize = 12;
+            $fontFile = __DIR__ . '/arial.ttf'; //Ensure this font exists
+
+            $textBox = imagettfbbox($fontSize, 0, $fontFile, $uploadDate);
+            $textWidth = $textBox[2] - $textBox[0];
+            $textHeight = $textBox[7] - $textBox[1];
+            $x = 10;
+            $y = $thumbHeight - 10;
+
+            $outlineThickness = 2;
+            for ($c = -$outlineThickness; $c <= $outlineThickness; $c++) {
+                for ($d = -$outlineThickness; $d <= $outlineThickness; $d++) {
+                    if ($c != 0 || $d != 0) {
+                        imagettftext($thumbImage, $fontSize, 0, $x + $c, $y + $d, $outlineColor, $fontFile, $uploadDate);
+                    }
+                }
+            }
+
+            imagettftext($thumbImage, $fontSize, 0, $x, $y, $textColor, $fontFile, $uploadDate);
+
+            imagepng($thumbImage, $thumbnailFile);
+            imagedestroy($thumbImage);
+
+            header('Location: gallery.php');
+            exit;
+        } else {
+            echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Файл водяного знака не найден.</div>';
+            echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+            exit;
+        }
+    } else {
+        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка при загрузке файла.</div>';
+        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+        exit;
+    }
+}
+?>
