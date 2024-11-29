@@ -1,0 +1,153 @@
+1/* General page styles */
+2body {
+3  font-family: 'Arial', sans-serif;
+4  background-color: #FFD1DC; /* Soft pink background */
+5  margin: 0;
+6  padding: 20px;
+7  display: flex;
+8  flex-direction: column;
+9  align-items: center;
+10  color: #333;
+11}
+12
+13h1 {
+14  margin-bottom: 20px;
+15  text-align: center;
+16  color: #A4D8E1; /* Light blue header */
+17  font-size: 2.5em;
+18}
+19
+20/* Upload form styles */
+21form {
+22  display: flex;
+23  flex-direction: column;
+24  align-items: center;
+25  width: 80%; /* Added width for better centering */
+26  max-width: 500px; /* Maximum width */
+27  margin-bottom: 20px;
+28  background-color: #FCEBB1; /* Soft yellow background */
+29  padding: 20px;
+30  border-radius: 10px;
+31  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+32}
+33
+34input[type="file"],
+35input[type="submit"] {
+36  padding: 10px;
+37  border: 2px solid #B2E0D4; /* Mint green border */
+38  border-radius: 5px;
+39  transition: border-color 0.3s, background-color 0.3s;
+40  margin-bottom: 10px;
+41  width: 100%; /* Make inputs full width */
+42  box-sizing: border-box; /* Include padding and border in width */
+43}
+44
+45input[type="file"]:hover {
+46  border-color: #E1B7E1; /* Lavender border on hover */
+47}
+48
+49input[type="submit"] {
+50  background-color: #FCEBB1; /* Soft yellow button */
+51  color: #333; /* Dark text on button */
+52  border: none;
+53  cursor: pointer;
+54}
+55
+56input[type="submit"]:hover {
+57  background-color: #E1B7E1; /* Lavender button on hover */
+58  transform: scale(1.05);
+59}
+60
+61
+62/* Gallery styles */
+63.gallery {
+64  display: flex;
+65  flex-wrap: wrap;
+66  justify-content: center;
+67  gap: 20px;
+68}
+69
+70/* Thumbnail styles */
+71.thumbnail {
+72  border: 3px solid #A4D8E1; /* Light blue border */
+73  border-radius: 10px;
+74  overflow: hidden;
+75  max-width: 300px;
+76  transition: transform 0.3s, box-shadow 0.3s;
+77  background-color: white;
+78  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+79  animation: fadeIn 0.5s forwards;
+80}
+81
+82.thumbnail:hover {
+83  transform: translateY(-5px);
+84  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+85}
+86
+87.thumbnail img {
+88  width: 100%;
+89  height: auto;
+90  display: block;
+91}
+92
+93/* Modal styles */
+94.modal {
+95  display: none;
+96  position: fixed;
+97  z-index: 1000;
+98  left: 0;
+99  top: 0;
+100  width: 100%;
+101  height: 100%;
+102  overflow: auto;
+103  background-color: rgba(0, 0, 0, 0.7);
+104  justify-content: center;
+105  align-items: center;
+106  text-align: center;
+107}
+108
+109.modal-content {
+110  background-color: #FCEBB1; /* Soft yellow modal background */
+111  padding: 20px;
+112  border-radius: 5px;
+113  max-width: 80%;
+114  max-height: 80%;
+115  animation: fadeIn 0.3s;
+116}
+117
+118
+119.close-modal {
+120  position: absolute;
+121  top: 10px;
+122  right: 10px;
+123  color: #333; /* Dark gray close button */
+124  font-size: 2em; /* Larger close button */
+125  cursor: pointer;
+126}
+127
+128/* Keyframes for fade-in animation */
+129@keyframes fadeIn {
+130  from {
+131    opacity: 0;
+132    transform: translateY(20px);
+133  }
+134  to {
+135    opacity: 1;
+136    transform: translateY(0);
+137  }
+138}
+139
+140/*Error message styling*/
+141.error-message {
+142    background-color: #FFC5C5; /* Soft pink error background */
+143    border: 1px solid #FFA07A; /* Soft orange error border */
+144    padding: 10px;
+145    margin-bottom: 10px;
+146    border-radius: 5px; /* Rounded corners */
+147    color: #333; /* Dark text */
+148}
+149
+150.error-message img {
+151  vertical-align: middle;
+152  margin-right: 5px;
+153}
