@@ -1,0 +1,134 @@
+1<?php
+2ini_set('display_errors', 1);
+3ini_set('display_startup_errors', 1);
+4error_reporting(E_ALL);
+5
+6date_default_timezone_set('Europe/Moscow');
+7
+8if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+9    $uploadDir = 'uploads/';
+10    $watermarkedDir = 'watermarked/';
+11    $thumbnailDir = 'thumbnails/';
+12
+13    // Sanitize user input!  This is crucial to prevent XSS vulnerabilities.
+14    $description = htmlspecialchars($_POST['description'], ENT_QUOTES, 'UTF-8');
+15
+16    $uploadFile = $uploadDir . basename($_FILES['image']['name']);
+17    $watermarkedFile = $watermarkedDir . basename($_FILES['image']['name']);
+18    $thumbnailFile = $thumbnailDir . basename($_FILES['image']['name']);
+19    $uploadTime = time();
+20
+21    $imageFileType = strtolower(pathinfo($uploadFile, PATHINFO_EXTENSION));
+22    $allowedTypes = array('jpg', 'jpeg', 'png', 'gif');
+23
+24    if (!in_array($imageFileType, $allowedTypes)) {
+25        echo '<div class="error-message"> <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Разрешены только файлы JPG, JPEG, PNG и GIF.</div>';
+26        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+27        exit;
+28    }
+29
+30    if (file_exists($uploadFile)) {
+31        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Файл с таким именем уже существует.</div>';
+32        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+33        exit;
+34    }
+35
+36    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+37        $imageData = [
+38            "description" => $description,
+39            "uploadTime" => $uploadTime,
+40            "originalFilename" => $_FILES['image']['name'],
+41            "fileSize" => $_FILES['image']['size'],
+42            "fileType" => $_FILES['image']['type'],
+43            "serverIP" => $_SERVER['SERVER_ADDR'],
+44            "clientIP" => $_SERVER['REMOTE_ADDR'],
+45            "phpVersion" => PHP_VERSION,
+46        ];
+47
+48        $image = imagecreatefromstring(file_get_contents($uploadFile));
+49        $imageData["width"] = imagesx($image);
+50        $imageData["height"] = imagesy($image);
+51        imagedestroy($image);
+52
+53        $descriptionFile = $uploadDir . pathinfo($uploadFile, PATHINFO_FILENAME) . '.json';
+54        file_put_contents($descriptionFile, json_encode($imageData, JSON_PRETTY_PRINT));
+55
+56        // Добавление текстового водяного знака
+57        $watermarkText = "© Ваш Водяной Знак"; // Замените на нужный текст
+58        $uploadDate = date('d.m.Y H:i:s', $uploadTime); // Текущая дата и время
+59        $fontSize = 20;
+60        $textColor = imagecolorallocate($image, 255, 255, 255); // Белый цвет
+61        $outlineColor = imagecolorallocate($image, 0, 0, 0); // Черный цвет для обводки
+62        $fontFile = __DIR__ . '/arial.ttf'; // Убедитесь, что этот шрифт существует
+63
+64        // Загружаем изображение для водяного знака
+65        $image = imagecreatefromstring(file_get_contents($uploadFile));
+66
+67        // Позиция для водяного знака
+68        $margin = 10;
+69        $x = imagesx($image) - 10 - 200; // Позиция по X
+70        $y = imagesy($image) - 10; // Позиция по Y
+71
+72        // Наносим обводку текста
+73        $outlineThickness = 2;
+74        for ($c = -$outlineThickness; $c <= $outlineThickness; $c++) {
+75            for ($d = -$outlineThickness; $d <= $outlineThickness; $d++) {
+76                if ($c != 0 || $d != 0) {
+77                    imagettftext($image, $fontSize, 0, $x + $c, $y + $d, $outlineColor, $fontFile, $watermarkText);
+78                }
+79            }
+80        }
+81
+1        // Наносим текст водяного знака
+2        imagettftext($image, $fontSize, 0, $x, $y, $textColor, $fontFile, $watermarkText);
+3
+4        // Сохраняем изображение с водяным знаком
+5        imagepng($image, $watermarkedFile);
+6        imagedestroy($image);
+7
+8        // Создание миниатюры
+9        $thumbWidth = 400;
+10        $thumbHeight = intval($thumbWidth * $imageData["height"] / $imageData["width"]);
+11        $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
+12        imagecopyresampled($thumbImage, imagecreatefromstring(file_get_contents($uploadFile)), 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageData["width"], $imageData["height"]);
+13
+14        imagefilter($thumbImage, IMG_FILTER_PIXELATE, 3, true);
+15        imagefilter($thumbImage, IMG_FILTER_SMOOTH, -2);
+16        $textColor = imagecolorallocate($thumbImage, 255, 255, 255);
+17        $outlineColor = imagecolorallocate($thumbImage, 0, 0, 0);
+18        $uploadDate = date('d.m.Y H:i:s', $uploadTime);
+19        $fontSize = 12;
+20        $fontFile = __DIR__ . '/arial.ttf'; // Убедитесь, что этот шрифт существует
+21
+22        $textBox = imagettfbbox($fontSize, 0, $fontFile, $uploadDate);
+23        $textWidth = $textBox[2] - $textBox[0];
+24        $textHeight = $textBox[7] - $textBox[1];
+25        $x = 10;
+26        $y = $thumbHeight - 10;
+27
+28        // Наносим обводку текста на миниатюре
+29        $outlineThickness = 2;
+30        for ($c = -$outlineThickness; $c <= $outlineThickness; $c++) {
+31            for ($d = -$outlineThickness; $d <= $outlineThickness; $d++) {
+32                if ($c != 0 || $d != 0) {
+33                    imagettftext($thumbImage, $fontSize, 0, $x + $c, $y + $d, $outlineColor, $fontFile, $uploadDate);
+34                }
+35            }
+36        }
+37
+38        // Наносим текст на миниатюре
+39        imagettftext($thumbImage, $fontSize, 0, $x, $y, $textColor, $fontFile, $uploadDate);
+40
+41        // Сохраняем миниатюру
+42        imagepng($thumbImage, $thumbnailFile);
+43        imagedestroy($thumbImage);
+44
+45        header('Location: gallery.php');
+46        exit;
+47    } else {
+48        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка при загрузке файла.</div>';
+49        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+50        exit;
+51    }
+52}
+53?>
