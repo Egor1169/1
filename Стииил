@@ -1,0 +1,143 @@
+1/* General page styles */
+2body {
+3  font-family: 'Arial', sans-serif;
+4  background-color: #f0f0f0;
+5  margin: 0;
+6  padding: 20px;
+7  display: flex;
+8  flex-direction: column;
+9  align-items: center;
+10  color: #333;
+11}
+12
+13/* Заголовок */
+14h1 {
+15  margin-bottom: 20px;
+16  text-align: center;
+17  color: #fff; /* Белый цвет текста */
+18  font-size: 2.5em;
+19  background-color: #e74c3c; /* Яркий фон */
+20  padding: 15px; /* Отступы вокруг текста */
+21  border-radius: 10px; /* Закругленные углы */
+22  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Тень */
+23}
+24
+25/* Upload form styles */
+26form {
+27  display: flex;
+28  flex-direction: column;
+29  align-items: center;
+30  width: 80%; /* Added width for better centering */
+31  max-width: 500px; /* Maximum width */
+32  margin-bottom: 20px;
+33  background-color: #ffffff; /* Белый фон формы */
+34  padding: 20px; /* Внутренние отступы */
+35  border-radius: 10px; /* Закругленные углы */
+36  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Тень */
+37}
+38
+39/* Стили для полей ввода */
+40input[type="file"],
+41input[type="submit"] {
+42  padding: 10px;
+43  border: 2px solid #3498db;
+44  border-radius: 5px;
+45  transition: border-color 0.3s, background-color 0.3s;
+46  margin-bottom: 10px;
+47  width: 100%; /* Make inputs full width */
+48  box-sizing: border-box; /* Include padding and border in width */
+49}
+50
+51input[type="file"]:hover {
+52  border-color: #2980b9;
+53}
+54
+55input[type="submit"] {
+56  background-color: #3498db;
+57  color: white;
+58  border: none;
+59  cursor: pointer;
+60  font-weight: bold; /* Жирный текст */
+61}
+62
+63input[type="submit"]:hover {
+64  background-color: #2980b9;
+65  transform: scale(1.05);
+66}
+67
+68/* Gallery styles */
+69.gallery {
+70  display: flex;
+71  flex-wrap: wrap;
+72  justify-content: center;
+73  gap: 20px;
+74}
+75
+76/* Thumbnail styles */
+77.thumbnail {
+78  border: 3px solid #34495e;
+79  border-radius: 10px;
+80  overflow: hidden;
+81  max-width: 300px;
+82  transition: transform 0.3s, box-shadow 0.3s;
+83  background-color: white;
+84  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+85  animation: fadeIn 0.5s forwards;
+86}
+87
+88.thumbnail:hover {
+89  transform: translateY(-5px);
+90  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+91}
+92
+93.thumbnail img {
+94  width: 100%;
+95  height: auto;
+96  display: block;
+97}
+98
+99/* Modal styles */
+100.modal {
+101  display: none;
+102  position: fixed;
+103  z-index: 1000;
+104  left: 0;
+105  top: 0;
+106  width: 100%;
+107  height: 100%;
+108  overflow: auto;
+109  background-color: rgba(0, 0, 0, 0.7);
+110  justify-content: center;
+111  align-items: center;
+112  text-align: center;
+113}
+114
+115.modal-content {
+116  background-color: white; /* Added background color to modal */
+117  padding: 20px;
+118  border-radius: 5px;
+119  max-width: 80%;
+120  max-height: 80%;
+121  animation: fadeIn 0.3s;
+122}
+123
+124/* Close button styles */
+125.close-modal {
+126  position: absolute;
+127  top: 10px;
+128  right: 10px;
+129  color: #e74c3c; /* Яркий цвет для кнопки закрытия */
+130  font-size: 2em; /* Larger close button */
+131  cursor: pointer;
+132}
+133
+134/* Keyframes for fade-in animation */
+135@keyframes fadeIn {
+136  from {
+137    opacity: 0;
+138    transform: translateY(20px);
+139  }
+140  to {
+141    opacity: 1;
+142    transform: translateY(0);
+143  }
