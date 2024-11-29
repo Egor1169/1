@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+2<html lang="ru">
+3<head>
+4    <meta charset="UTF-8">
+5    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+6    <title>Фото-галерея</title>
+7    <link rel="stylesheet" href="style.css">
+8    <link rel="stylesheet" href="lightbox.min.css?v=<?php echo time(); ?>">
+9    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+10</head>
+11<body>
+12    <div class="header-block">
+13        <h1>Фото-галерея <span class="material-icons">photo</span></h1>
+14    </div>
+15    <div class="form-container">
+16        <form action="upload.php" method="post" enctype="multipart/form-data" class="form-left">
+17            <div class="form-group">
+18                <label for="image" class="custom-file-upload">
+19                    <span>Выберите изображение</span>
+20                    <span class="material-icons">attach_file</span>
+21                </label>
+22                <input type="file" name="image" id="image" required>
+23            </div>
+24            <div class="form-group">
+25                <label for="description" class="custom-file-upload">
+26                    <span>Описание:</span>
+27                    <span class="material-icons">edit</span>
+28                </label>
+29                <input type="text" name="description" id="description" required>
+30            </div>
+31            <button type="submit">Загрузить
+32                <span class="material-icons">cloud_upload</span>
+33            </button>
+34        </form>
+35    </div>
+36    <a href="gallery.php">Перейти к галерее</a>
+37</body>
+38</html>
