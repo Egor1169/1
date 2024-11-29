@@ -1,0 +1,121 @@
+<?php
+2ini_set('display_errors', 1);
+3ini_set('display_startup_errors', 1);
+4error_reporting(E_ALL);
+5
+6date_default_timezone_set('Europe/Moscow');
+7
+8if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+9    $uploadDir = 'uploads/';
+10    $watermarkedDir = 'watermarked/';
+11    $thumbnailDir = 'thumbnails/';
+12
+13    // Sanitize user input! This is crucial to prevent XSS vulnerabilities.
+14    $description = htmlspecialchars($_POST['description'], ENT_QUOTES, 'UTF-8');
+15
+16    $uploadFile = $uploadDir . basename($_FILES['image']['name']);
+17    $watermarkedFile = $watermarkedDir . basename($_FILES['image']['name']);
+18    $thumbnailFile = $thumbnailDir . basename($_FILES['image']['name']);
+19    $uploadTime = time();
+20
+21    $imageFileType = strtolower(pathinfo($uploadFile, PATHINFO_EXTENSION));
+22    $allowedTypes = array('jpg', 'jpeg', 'png', 'gif');
+23
+24    if (!in_array($imageFileType, $allowedTypes)) {
+25        echo '<div class="error-message"> <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Разрешены только файлы JPG, JPEG, PNG и GIF.</div>';
+26        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+27        exit;
+28    }
+29
+30    if (file_exists($uploadFile)) {
+31        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Файл с таким именем уже существует.</div>';
+32        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+33        exit;
+34    }
+35
+36    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+37        $imageData = [
+38            "description" => $description,
+39            "uploadTime" => $uploadTime,
+40            "originalFilename" => $_FILES['image']['name'],
+41            "fileSize" => $_FILES['image']['size'],
+42            "fileType" => $_FILES['image']['type'],
+43            "serverIP" => $_SERVER['SERVER_ADDR'],
+44            "clientIP" => $_SERVER['REMOTE_ADDR'],
+45            "phpVersion" => PHP_VERSION,
+46        ];
+47
+48        $image = imagecreatefromstring(file_get_contents($uploadFile));
+49        $imageData["width"] = imagesx($image);
+50        $imageData["height"] = imagesy($image);
+51        imagedestroy($image);
+52
+53        $descriptionFile = $uploadDir . pathinfo($uploadFile, PATHINFO_FILENAME) . '.json';
+54        file_put_contents($descriptionFile, json_encode($imageData, JSON_PRETTY_PRINT));
+55
+56        // Создание текстового водяного знака
+57        $watermarkText = "© Ваш Водяной Знак"; // Замените на нужный текст
+58        $fontSize = 20;
+59        $textColor = imagecolorallocate($image, 255, 255, 255); // Белый цвет
+60        $outlineColor = imagecolorallocate($image, 0, 0, 0); // Черный цвет для обводки
+61        $fontFile = __DIR__ . '/arial.ttf'; // Убедитесь, что этот шрифт существует
+62
+63        // Получаем размеры текста
+64        $textBox = imagettfbbox($fontSize, 0, $fontFile, $watermarkText);
+65        $textWidth = $textBox[2] - $textBox[0];
+66        $textHeight = $textBox[1] - $textBox[7];
+67
+68        // Позиция текста
+69        $x = imagesx($image) - $textWidth - 10; // 10 пикселей от края
+70        $y = imagesy($image) - $textHeight - 10; // 10 пикселей от края
+71
+72        // Нанесение обводки текста
+73        $outlineThickness = 2;
+74        for ($c = -$outlineThickness; $c <= $outlineThickness; $c++) {
+75            for ($d = -$outlineThickness; $d <= $outlineThickness; $d++) {
+76                if ($c != 0 || $d != 0) {
+77                    imagettftext($image, $fontSize, 0, $x + $c, $y + $d, $outlineColor, $fontFile, $watermarkText);
+78                }
+79            }
+80        }
+ // Наносим текст
+2        imagettftext($image, $fontSize, 0, $x, $y, $textColor, $fontFile, $watermarkText);
+3
+4        // Сохраняем изображение с водяным знаком
+5        imagejpeg($image, $watermarkedFile);
+6        imagedestroy($image);
+7
+8        // Создание миниатюры
+9        $thumbnailWidth = 150;
+10        $thumbnailHeight = 150;
+11
+12        list($width, $height) = getimagesize($uploadFile);
+13        $thumbnail = imagecreatetruecolor($thumbnailWidth, $thumbnailHeight);
+14        $source = imagecreatefromjpeg($uploadFile); // или imagecreatefrompng, imagecreatefromgif в зависимости от типа
+15
+16        // Пропорциональное изменение размера
+17        $aspectRatio = $width / $height;
+18        if ($aspectRatio > 1) {
+19            // Ширина больше высоты
+20            $newHeight = $thumbnailHeight;
+21            $newWidth = $thumbnailHeight * $aspectRatio;
+22        } else {
+23            // Высота больше ширины
+24            $newWidth = $thumbnailWidth;
+25            $newHeight = $thumbnailWidth / $aspectRatio;
+26        }
+27
+28        // Сохраняем миниатюру
+29        imagecopyresampled($thumbnail, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+30        imagejpeg($thumbnail, $thumbnailFile);
+31        imagedestroy($thumbnail);
+32        imagedestroy($source);
+33
+34        echo '<div class="success-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/check-circle-fill-24.svg" alt="gallery icon"> Файл успешно загружен и обработан!</div>';
+35        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+36    } else {
+37        echo '<div class="error-message"><img src="https://raw.githubusercontent.com/primer/octicons/main/icons/alert-fill-24.svg" alt="gallery icon"> Ошибка: Не удалось загрузить файл.</div>';
+38        echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+39    }
+40}
+41?>
