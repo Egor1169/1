@@ -1,0 +1,37 @@
+<?php
+2date_default_timezone_set('Europe/Moscow');
+3
+4if (!isset($_GET['image'])) {
+5    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Изображение не указано.</div>';
+6    exit;
+7}
+8
+9$image = $_GET['image'];
+10$watermarkedDir = 'watermarked/';
+11$imagePath = $watermarkedDir . basename($image);
+12
+13if (!file_exists($imagePath)) {
+14    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Изображение не найдено.</div>';
+15    exit;
+16}
+17?>
+18<!DOCTYPE html>
+19<html lang="ru">
+20<head>
+21    <meta charset="UTF-8">
+22    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+23    <title>Просмотр изображения</title>
+24    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+25</head>
+26<body>
+27    <div class="header-block">
+28        <h1>Просмотр изображения с водяным знаком</h1>
+29    </div>
+30    <div class="image-container">
+31        <img src="<?php echo $imagePath; ?>" alt="Изображение с водяным знаком">
+32    </div>
+33    <div class="navigation">
+34        <a href="gallery.php"><button>Вернуться в галерею</button></a>
+35    </div>
+36</body>
+37</html>
