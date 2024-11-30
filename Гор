@@ -1,0 +1,103 @@
+<?php
+2date_default_timezone_set('Europe/Moscow');
+3
+4if (!file_exists(__FILE__)) {
+5    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Неверный путь.</div>';
+6    echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+7    exit;
+8}
+9?>
+10<!DOCTYPE html>
+11<html lang="ru">
+12<head>
+13    <meta charset="UTF-8">
+14    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+15    <title>Галерея</title>
+16    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+17    <link rel="stylesheet" href="lightbox.min.css?v=<?php echo time(); ?>">
+18    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css">
+19</head>
+20<body>
+21    <div class="header-block">
+22        <h1>Фото-галерея <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/file-media-24.svg" alt="gallery icon"></h1> 
+23    </div>
+24
+25    <div class="request-date">
+26        <p>Дата запроса: <?php echo date('d.m.Y H:i:s'); ?></p>
+27    </div>
+28    
+29    <div class="sorting">
+30        <form method="get">
+31            <label for="sort">Сортировать по:</label>
+32            <select name="sort" id="sort" onchange="this.form.submit()">
+33                <option value="date" <?php echo (isset($_GET['sort']) && $_GET['sort'] == 'date') ? 'selected' : ''; ?>>Дате загрузки</option>
+34                <option value="size" <?php echo (isset($_GET['sort']) && $_GET['sort'] == 'size') ? 'selected' : ''; ?>>Размеру файла</option>
+35            </select>
+36        </form>
+37    </div>
+38
+39    <div class="gallery">
+40        <?php
+41        $images = [];
+42        $jsonDir = 'json/'; // Директория с JSON-файлами
+43        $uploadsDir = 'uploads/'; // Директория с изображениями
+44
+45        // Считываем все JSON-файлы из директории
+46        foreach (glob($jsonDir . '*.json') as $jsonFile) {
+47            $imageData = json_decode(file_get_contents($jsonFile), true);
+48            if ($imageData) {
+49                $filename = $imageData['filename'];
+50                $uploadTime = $imageData['uploadTime']; // Дата загрузки
+51                $processingDate = $imageData['processingDate'];
+52                $description = $imageData['description'];
+53                $fileSize = filesize($uploadsDir . $filename); // Получаем размер файла из директории uploads
+54
+55                // Сохраняем информацию об изображении
+56                $images[$filename] = [
+57                    'uploadTime' => $uploadTime,
+58                    'processingDate' => $processingDate,
+59                    'fileSize' => $fileSize,
+60                    'description' => $description
+61                ];
+62            }
+63        }
+64
+65        // Сортировка
+66        if (isset($_GET['sort'])) {
+67            if ($_GET['sort'] == 'size') {
+68                uasort($images, function ($a, $b) {
+69                    return $a['fileSize'] <=> $b['fileSize'];
+70                });
+71            } elseif ($_GET['sort'] == 'date') {
+72                usort($images, function ($a, $b) {
+73                    return $a['uploadTime'] <=> $b['uploadTime'];
+74                });
+75            }
+76        } else {
+77            // По умолчанию сортировка по дате загрузки (новые первыми)
+78            usort($images, function ($a, $b) {
+79                return $b['uploadTime'] <=> $a['uploadTime'];
+80            });
+81        }
+82
+83        // Выводим изображения
+84        foreach ($images as $image => $data) {
+85            $imagePath = $uploadsDir . $image; // Путь к изображению
+86            $thumbnailPath = 'thumbnails/' . $image . '?v=' . time(); // Путь к миниатюре
+87           $thumbnailPath = 'thumbnails/' . $image . '?v=' . time(); // Путь к миниатюре
+5                $fileSizeFormatted = round($data['fileSize'] / 1024, 2) . ' КБ'; // Форматируем размер файла в КБ
+6                
+7                echo '<div class="image-container">';
+8                echo '<a href="' . htmlspecialchars($imagePath) . '" data-lightbox="gallery" data-title="' . htmlspecialchars($data['description']) . '">';
+9                echo '<img src="' . htmlspecialchars($thumbnailPath) . '" alt="' . htmlspecialchars($data['description']) . '">';
+10                echo '</a>';
+11                echo '<div class="image-info">';
+12                echo '<p>Размер: ' . $fileSizeFormatted . '</p>';
+13                echo '<p>Дата загрузки: ' . date('d.m.Y H:i:s', $data['uploadTime']) . '</p>';
+14                echo '</div>';
+15                echo '</div>';
+16            }
+17        ?>
+18    </div>
+19</body>
+20</html>
