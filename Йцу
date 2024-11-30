@@ -1,0 +1,121 @@
+<?php
+2date_default_timezone_set('Europe/Moscow');
+3
+4if (!file_exists(__FILE__)) {
+5    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Неверный путь.</div>';
+6    echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+7    exit;
+8}
+9?>
+10<!DOCTYPE html>
+11<html lang="ru">
+12<head>
+13    <meta charset="UTF-8">
+14    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+15    <title>Галерея</title>
+16    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+17    <link rel="stylesheet" href="lightbox.min.css?v=<?php echo time(); ?>">
+18    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css">
+19    <style>
+20        .image-container {
+21            display: inline-block;
+22            margin: 10px;
+23            text-align: center;
+24        }
+25        .image-container img {
+26            width: 150px; /* Задаем фиксированную ширину для всех изображений */
+27            height: 150px; /* Задаем фиксированную высоту для всех изображений */
+28            object-fit: cover; /* Обеспечиваем правильное отображение изображения */
+29        }
+30    </style>
+31</head>
+32<body>
+33    <div class="header-block">
+34        <h1>Фото-галерея <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/file-media-24.svg" alt="gallery icon"></h1> 
+35    </div>
+36
+37    <form method="get" action="">
+38        <select name="sort" onchange="this.form.submit()">
+39            <option value="date" <?php echo (isset($_GET['sort']) && $_GET['sort'] == 'date') ? 'selected' : ''; ?>>Сортировать по дате и времени</option>
+40            <option value="size" <?php echo (isset($_GET['sort']) && $_GET['sort'] == 'size') ? 'selected' : ''; ?>>Сортировать по размеру файла</option>
+41        </select>
+42    </form>
+43
+44    <div class="gallery">
+45        <?php
+46        $uploadDir = 'uploads/';
+47        $watermarkedDir = 'watermarked/';
+48        $thumbnailDir = 'thumbnails/';
+49        $files = scandir($uploadDir);
+50        $images = array();
+51
+52        foreach ($files as $file) {
+53            if (in_array(pathinfo($file, PATHINFO_EXTENSION), array('jpg', 'jpeg', 'png', 'gif'))) {
+54                $descriptionFile = $uploadDir . pathinfo($file, PATHINFO_FILENAME) . '.json';
+55                $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+56                $descriptionData = json_decode($descriptionContent, true);
+57                
+58                $description = isset($descriptionData['description']) ? $descriptionData['description'] : 'Без описания';
+59                $uploadTime = isset($descriptionData['upload_time']) ? $descriptionData['upload_time'] : 0;
+60                $fileSize = filesize($uploadDir . $file);
+61
+62                $images[$file] = array(
+63                    'description' => $description,
+64                    'upload_time' => $uploadTime,
+65                    'file_size' => $fileSize
+66                );
+67            }
+68        }
+69
+70        // Сортировка изображений
+71        if (isset($_GET['sort'])) {
+72            switch ($_GET['sort']) {
+73                case 'size':
+74                    usort($images, function($a, $b) {
+75                        return $b['file_size'] <=> $a['file_size']; // Сортировка по размеру
+76                    });
+77                    break;
+78                case 'date':
+79                default:
+80                    arsort($images); // Сортировка по дате (по убыванию)
+81                    break;
+82            }
+83        }
+84
+85        foreach ($images as $image => $data) {
+86            $thumbnailPath = $thumbnailDir . $image . '?v=' . time();
+87            $description = $data['description'];
+88            $uploadTime = $data['upload_time'];
+89            $uploadDate = $uploadTime ? date('d.m.Y H:i:s', $uploadTime) : 'Неизвестно';
+90            $fileSize = $data['file_size'];
+91  $formattedSize = number_format($fileSize / 1024, 2) . ' KB'; // Форматируем размер файла в КБ
+2
+3            echo '<div class="image-container">';
+4            echo '<a href="view_image.php?image=' . urlencode($image) . '" target="_blank">';
+5            echo '<img src="' . $thumbnailPath . '" alt="' . htmlspecialchars($description) . '">';
+6            echo '</a>';
+7            echo '<div class="description">' . htmlspecialchars($description) . '</div>';
+8            echo '<div class="upload-info">';
+9            echo '<span class="upload-date">Дата и время: ' . htmlspecialchars($uploadDate) . '</span>';
+10            echo ' | ';
+11            echo '<span class="file-size">Размер: ' . htmlspecialchars($formattedSize) . '</span>';
+12            echo '</div>'; // Закрываем div.upload-info
+13
+14            echo '<form action="delete.php" method="post" class="delete-form">';
+15            echo '<input type="hidden" name="image" value="' . htmlspecialchars($image) . '">';
+16            echo '<button type="submit" class="delete-button"><span class="octicon octicon-trashcan"></span> Удалить</button>';
+17            echo '</form>';
+18            echo '</div>'; // Закрываем div.image-container
+19        }
+20
+21        if (empty($images)) {
+22            echo '<p>Изображения не найдены.</p>';
+23        }
+24        ?>
+25    </div>
+26
+27    <a href="index.php">Загрузить еще</a>
+28
+29    <script src="lightbox.min.js?v=<?php echo time(); ?>"></script>
+30</body>
+31</html>
