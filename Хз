@@ -1,0 +1,109 @@
+1<?php
+2date_default_timezone_set('Europe/Moscow');
+3
+4// Определяем параметры сортировки
+5$sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'date'; // По умолчанию сортировка по дате
+6$uploadDir = 'uploads/';
+7$watermarkedDir = 'watermarked/';
+8$thumbnailDir = 'thumbnails/';
+9$files = scandir($uploadDir);
+10$images = array();
+11
+12foreach ($files as $file) {
+13    if (in_array(pathinfo($file, PATHINFO_EXTENSION), array('jpg', 'jpeg', 'png', 'gif'))) {
+14        $descriptionFile = $uploadDir . pathinfo($file, PATHINFO_FILENAME) . '.txt';
+15        $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+16        $descriptionParts = explode("\n", $descriptionContent);
+17        $uploadTime = isset($descriptionParts[1]) ? $descriptionParts[1] : 0;
+18        $fileSize = filesize($uploadDir . $file); // Получаем размер файла в байтах
+19        $images[$file] = array('time' => $uploadTime, 'size' => $fileSize);
+20    }
+21}
+22
+23// Сортировка изображений
+24if ($sortBy === 'size') {
+25    // Сортируем по размеру файла
+26    uasort($images, function($a, $b) {
+27        return $a['size'] <=> $b['size'];
+28    });
+29} else {
+30    // Сортируем по дате
+31    arsort($images);
+32}
+33?>
+34<!DOCTYPE html>
+35<html lang="ru">
+36<head>
+37    <meta charset="UTF-8">
+38    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+39    <title>Галерея</title>
+40    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+41    <link rel="stylesheet" href="lightbox.min.css?v=<?php echo time(); ?>">
+42    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css">
+43    <style>
+44        body {
+45            font-family: Arial, sans-serif;
+46            margin: 0;
+47            padding: 20px;
+48            background-color: #f0f0f0;
+49        }
+50        .header-block {
+51            text-align: center;
+52            margin-bottom: 20px;
+53        }
+54        .gallery {
+55            display: grid;
+56            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+57            gap: 10px;
+58        }
+59        .image-container {
+60            position: relative;
+61            overflow: hidden;
+62            border: 1px solid #ccc;
+63            background-color: #fff;
+64            border-radius: 5px;
+65            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+66        }
+67        .image-container img {
+68            width: 100%;
+69            height: 150px; /* Фиксированная высота */
+70            object-fit: cover; /* Сохранение пропорций */
+71        }
+72        .image-description {
+73            padding: 10px;
+74            text-align: center;
+75        }
+76        .delete-button {
+77            background-color: red;
+78            color: white;
+79            border: none;
+80            padding: 5px 10px;
+81            border-radius: 5px;
+82            cursor: pointer;
+83        }
+84        .pagination {
+85            text-align: center;
+86            margin-top: 20px;
+87        }
+88        footer {
+89            text-align: center;
+90            margin-top: 20px;
+91            font-size: 14px;
+92            color: #777;
+93        }
+94    </style>
+95</head>
+96<body>
+97    <div class="header-block">
+98        <h1>Фото-галерея <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/file-media-24.svg" alt="gallery icon"></h1>
+99    </div>
+100
+101    <div class="gallery">
+102        <?php
+103        foreach ($images as $image => $data) {
+104            $thumbnailPath = $thumbnailDir . $image . '?v=' . time();
+105            $descriptionFile = $uploadDir . pathinfo($image, PATHINFO_FILENAME) . '.txt';
+106            $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+107            $descriptionParts = explode("\n", $descriptionContent);
+108            $description = isset($descriptionParts[0]) ? $descriptionParts[0] : 'Без описания';
+109            $uploadDate = $data
