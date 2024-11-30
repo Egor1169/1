@@ -1,0 +1,90 @@
+<?php
+date_default_timezone_set('Europe/Moscow');
+
+if (!file_exists(__FILE__)) {
+    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Неверный путь.</div>';
+    echo '<br><a href="index.php"><button>Вернуться на страницу загрузки</button></a>';
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Галерея</title>
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="lightbox.min.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css">
+</head>
+<body>
+    <div class="header-block">
+        <h1>Фото-галерея <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/file-media-24.svg" alt="gallery icon"></h1> 
+    </div>
+
+    <div class="request-date">
+        <p>Дата запроса: <?php echo date('d.m.Y H:i:s'); ?></p> <!-- Выводим дату запроса -->
+    </div>
+    
+    <div class="sorting">
+        <form method="get">
+            <label for="sort">Сортировать по:</label>
+            <select name="sort" id="sort" onchange="this.form.submit()">
+                <option value="date" <?php echo (isset($_GET['sort']) && $_GET['sort'] == 'date') ? 'selected' : ''; ?>>Дате загрузки</option>
+                <option value="size" <?php echo (isset($_GET['sort']) && $_GET['sort'] == 'size') ? 'selected' : ''; ?>>Размеру файла</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="gallery">
+        <?php
+        $uploadDir = 'uploads/';
+        $watermarkedDir = 'watermarked/';
+        $thumbnailDir = 'thumbnails/';
+        $files = scandir($uploadDir);
+        $images = array();
+
+        foreach ($files as $file) {
+            if (in_array(pathinfo($file, PATHINFO_EXTENSION), array('jpg', 'jpeg', 'png', 'gif'))) {
+                $jsonFile = $uploadDir . pathinfo($file, PATHINFO_FILENAME) . '.json';
+                $uploadTime = 0;
+
+                // Проверяем, существует ли JSON файл и считываем его
+                if (file_exists($jsonFile)) {
+                    $jsonContent = file_get_contents($jsonFile);
+                    $jsonData = json_decode($jsonContent, true);
+                    if (isset($jsonData['uploadTime'])) {
+                        $uploadTime = $jsonData['uploadTime'];
+                    }
+                }
+
+                // Получаем размер файла
+                $fileSize = filesize($uploadDir . $file);
+                
+                // Сохраняем информацию об изображении
+                $images[$file] = [
+                    'uploadTime' => $uploadTime,
+                    'fileSize' => $fileSize
+                ];
+            }
+        }
+
+        // Сортировка
+        if (isset($_GET['sort']) && $_GET['sort'] == 'size') {
+            // Сортируем по размеру файла
+            uasort($images, function ($a, $b) {
+                return $a['fileSize'] <=> $b['fileSize'];
+            });
+        } else {
+            // Сортируем по дате загрузки
+            arsort($images);
+        }
+
+        // Выводим изображения
+        foreach ($images as $image => $data) {
+            $thumbnailPath = $thumbnailDir . $image . '?v=' . time();
+            $watermarkedPath = $watermarkedDir . $image . '?v=' . time();
+            $descriptionFile = $uploadDir . pathinfo($image, PATHINFO_FILENAME) . '.txt';
+            $descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : '';
+            $descriptionParts = explode("\n", $descriptionContent);
+            $description = isset($descriptionParts[0 ⬤
