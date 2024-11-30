@@ -1,0 +1,64 @@
+1<?php
+2date_default_timezone_set('Europe/Moscow');
+3
+4if (!isset($_GET['image'])) {
+5    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Изображение не указано.</div>';
+6    exit;
+7}
+8
+9$image = $_GET['image'];
+10$watermarkedDir = 'watermarked/';
+11$descriptionDir = 'descriptions/'; // Папка для описаний
+12$imagePath = $watermarkedDir . basename($image);
+13$descriptionFile = $descriptionDir . pathinfo($image, PATHINFO_FILENAME) . '.txt'; // Путь к файлу описания
+14
+15if (!file_exists($imagePath)) {
+16    echo '<div class="error-message"><span class="octicon octicon-alert"></span> Ошибка: Изображение не найдено.</div>';
+17    exit;
+18}
+19
+20// Получение описания
+21$descriptionContent = file_exists($descriptionFile) ? file_get_contents($descriptionFile) : 'Без описания';
+22$descriptionLines = explode("\n", $descriptionContent); // Разделение по строкам
+23?>
+24<!DOCTYPE html>
+25<html lang="ru">
+26<head>
+27    <meta charset="UTF-8">
+28    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+29    <title>Просмотр изображения</title>
+30    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
+31    <style>
+32        .description {
+33            display: flex;
+34            flex-direction: column; /* Вывод в столбик */
+35            margin-top: 20px;
+36        }
+37        .description p {
+38            margin: 0; /* Убираем отступы */
+39            padding: 5px 0; /* Добавляем небольшие отступы между строками */
+40        }
+41    </style>
+42</head>
+43<body>
+44    <div class="header-block">
+45        <h1>Просмотр изображения с водяным знаком</h1>
+46    </div>
+47    <div class="image-container">
+48        <img src="<?php echo $imagePath; ?>" alt="Изображение с водяным знаком">
+49    </div>
+50    <div class="description">
+51        <h2>Описание:</h2>
+52        <?php if (trim($descriptionContent) === ''): ?>
+53            <p>Без описания</p>
+54        <?php else: ?>
+55            <?php foreach ($descriptionLines as $line): ?>
+56                <p><?php echo htmlspecialchars(trim($line)); ?></p> <!-- Экранирование для безопасности -->
+57            <?php endforeach; ?>
+58        <?php endif; ?>
+59    </div>
+60    <div class="navigation">
+61        <a href="gallery.php"><button>Вернуться в галерею</button></a>
+62    </div>
+63</body>
+64</html>
